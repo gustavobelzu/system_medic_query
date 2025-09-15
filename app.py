@@ -1,7 +1,7 @@
-from modulo_paciente import menu_pacientes
-from modulo_usuario import menu_usuarios
-from modulo_ingreso import menu_ingresos
-from modulo_egreso import menu_egresos
+from modules.pacientes import menu_pacientes
+from modules.usuarios import menu_usuarios
+from modules.ingresos import menu_ingresos
+from modules.egresos import menu_egresos
 
 def menu_principal():
     while True:
