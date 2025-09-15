@@ -24,23 +24,12 @@ CREATE TABLE IF NOT EXISTS Paciente (
     nombre TEXT NOT NULL,
     edad INTEGER,
     sexo TEXT CHECK(sexo IN ('M','F')),
+    departamento TEXT NOT NULL,
+    telefono INTEGER,
     id_estado INTEGER,
     FOREIGN KEY (id_estado) REFERENCES Estado(id_estado)
 )
 """)
-
-# ==========================
-# TABLA: Usuario
-# ==========================
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS Usuario (
-    matricula TEXT PRIMARY KEY,
-    nombre TEXT NOT NULL,
-    cargo TEXT,
-    especialidad TEXT
-)
-""")
-
 # ==========================
 # TABLA: Ingreso
 # ==========================
@@ -48,15 +37,36 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS Ingreso (
     id_ingreso INTEGER PRIMARY KEY AUTOINCREMENT,
     ci TEXT NOT NULL,
-    matricula TEXT NOT NULL,
     fecha_ingreso TEXT,
     hora_ingreso TEXT,
     servicio_hospitalario TEXT,
-    FOREIGN KEY (ci) REFERENCES Paciente(ci),
-    FOREIGN KEY (matricula) REFERENCES Usuario(matricula)
+    cama TEXT,
+    FOREIGN KEY (ci) REFERENCES Paciente(ci)
 )
 """)
-
+# ==========================
+# TABLA: Usuario (login)
+# ==========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS Usuario (
+    id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL
+)
+""")
+# ==========================
+# TABLA: Personal (información del trabajador)
+# ==========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS Personal (
+    id_personal INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_usuario INTEGER UNIQUE, -- Relación 1 a 1 con Usuario
+    nombre TEXT NOT NULL,
+    cargo TEXT NOT NULL,       -- Ej: Médico, Enfermera, Administrativo
+    especialidad TEXT,         -- Solo aplica a médicos/enfermeras
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+)
+""")
 # ==========================
 # TABLA: Egreso
 # ==========================
@@ -77,4 +87,5 @@ CREATE TABLE IF NOT EXISTS Egreso (
 conn.commit()
 conn.close()
 
-print("✅ Base de datos emergencias.db creada con relaciones entre tablas")
+print("✅ Base de datos emergencias.db creada con tabla intermedia Ingreso_Personal")
+
