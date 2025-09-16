@@ -29,7 +29,7 @@ def make_layout() -> Layout:
     return layout
 
 def render_header() -> Panel:
-    return Panel("[bold cyan]🏥 Sistema de Emergencias - Dashboard[/bold cyan]", expand=True)
+    return Panel("[bold cyan]🏥 Sistema de Emergencias - Panel de Control[/bold cyan]", expand=True)
 
 def render_footer() -> Panel:
     return Panel("Presiona [bold green]CTRL+C[/bold green] para salir", expand=True)
