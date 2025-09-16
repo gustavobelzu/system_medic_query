@@ -67,9 +67,18 @@ def render_pacientes_table() -> Table:
     table.add_column("Estado", style="red")
 
     for p in pacientes:
-        table.add_row(str(p[0]), p[1], str(p[2]), p[3], p[4], p[5], p[6] or "Sin estado")
+        table.add_row(
+            str(p[0] or "N/A"),           # CI
+            str(p[1] or "Sin nombre"),    # Nombre
+            str(p[2] or "0"),             # Edad
+            str(p[3] or "N/A"),           # Sexo
+            str(p[4] or "N/A"),           # Departamento
+            str(p[5] or "N/A"),           # Teléfono
+            str(p[6] or "Sin estado")     # Estado
+        )
 
     return table
+
 
 def render_estadisticas() -> Panel:
     conn = conectar()
