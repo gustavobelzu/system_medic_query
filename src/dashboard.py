@@ -137,17 +137,21 @@ def main():
     layout = make_layout()
 
     try:
-        with Live(layout, refresh_per_second=2, screen=True):
-            while True:
+        while True:
+            # Actualizar el dashboard
+            with Live(layout, refresh_per_second=2, screen=True):
                 layout["header"].update(render_header())
                 layout["footer"].update(render_footer())
                 layout["main"].update(render_pacientes_table())
                 layout["right"].update(render_estadisticas())
                 layout["left"].update(render_emergencias())
+                time.sleep(1)  # refresca 1 segundo
 
-                # Permitir agregar pacientes sin salir del dashboard
-                if console.input("\nPresiona [bold blue]1[/bold blue] para agregar paciente o Enter para continuar: ") == "1":
-                    registrar_paciente()
+            # Ahora fuera del Live pedimos input
+            opcion = input("\nPresiona 1 para agregar paciente o Enter para continuar: ").strip()
+            if opcion == "1":
+                registrar_paciente()
+
 
                 time.sleep(1)
 
