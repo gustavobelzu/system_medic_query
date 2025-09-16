@@ -1,3 +1,13 @@
+import sys
+import os
+
+# Agregar la carpeta raíz del proyecto al path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from modules.pacientes import registrar_paciente
+
+
+
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
