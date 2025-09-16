@@ -17,7 +17,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from modules.pacientes import registrar_paciente
 
 console = Console()
-
 DB_PATH = "database/emergencias.db"
 
 def conectar():
@@ -68,17 +67,15 @@ def render_pacientes_table() -> Table:
 
     for p in pacientes:
         table.add_row(
-            str(p[0] or "N/A"),           # CI
-            str(p[1] or "Sin nombre"),    # Nombre
-            str(p[2] or "0"),             # Edad
-            str(p[3] or "N/A"),           # Sexo
-            str(p[4] or "N/A"),           # Departamento
-            str(p[5] or "N/A"),           # Teléfono
-            str(p[6] or "Sin estado")     # Estado
+            str(p[0] or "N/A"),           
+            str(p[1] or "Sin nombre"),    
+            str(p[2] or "0"),             
+            str(p[3] or "N/A"),           
+            str(p[4] or "N/A"),           
+            str(p[5] or "N/A"),           
+            str(p[6] or "Sin estado")     
         )
-
     return table
-
 
 def render_estadisticas() -> Panel:
     conn = conectar()
@@ -138,25 +135,23 @@ def main():
 
     try:
         while True:
-            # Actualizar el dashboard
+            # Mostrar dashboard con Live durante 1 segundo
             with Live(layout, refresh_per_second=2, screen=True):
                 layout["header"].update(render_header())
                 layout["footer"].update(render_footer())
                 layout["main"].update(render_pacientes_table())
                 layout["right"].update(render_estadisticas())
                 layout["left"].update(render_emergencias())
-                time.sleep(1)  # refresca 1 segundo
+                time.sleep(1)
 
-            # Ahora fuera del Live pedimos input
+            # Pedir input fuera del Live
             opcion = input("\nPresiona 1 para agregar paciente o Enter para continuar: ").strip()
             if opcion == "1":
                 registrar_paciente()
-
-
-                time.sleep(1)
 
     except KeyboardInterrupt:
         console.print("\n[bold red]Programa terminado por el usuario.[/bold red]")
 
 if __name__ == "__main__":
     main()
+
