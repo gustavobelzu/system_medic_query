@@ -9,7 +9,7 @@ import random
 import time
 
 # Importar funciones de tu módulo pacientes
-from pacientes import registrar_paciente
+from modules.pacientes import registrar_paciente
 
 console = Console()
 
