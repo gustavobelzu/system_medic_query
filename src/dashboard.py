@@ -3,7 +3,7 @@ import os
 import sqlite3
 import time
 import random
-import readchar
+import msvcrt  # Solo Windows
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
@@ -137,26 +137,25 @@ def main():
     try:
         with Live(layout, refresh_per_second=2, screen=True):
             while True:
+                # Actualizar dashboard
                 layout["header"].update(render_header())
                 layout["footer"].update(render_footer())
                 layout["main"].update(render_pacientes_table())
                 layout["right"].update(render_estadisticas())
                 layout["left"].update(render_emergencias())
 
-                # Captura de tecla sin bloquear el dashboard
-                if readchar.kbhit():  # detecta si se presionó una tecla
-                    key = readchar.readkey()
+                # Leer tecla sin bloquear el dashboard
+                if msvcrt.kbhit():
+                    key = msvcrt.getwch()
                     if key == "1":
                         registrar_paciente()
-                    elif key == readchar.key.CTRL_C:
+                    elif key == "\x03":  # CTRL+C
                         break
 
-                time.sleep(0.1)  # refresco ligero
+                time.sleep(0.1)
 
     except KeyboardInterrupt:
         console.print("\n[bold red]Programa terminado por el usuario.[/bold red]")
 
 if __name__ == "__main__":
     main()
-
-
