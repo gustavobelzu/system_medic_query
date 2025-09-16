@@ -137,7 +137,7 @@ def main():
     try:
         while True:
             # Mostrar dashboard en Live
-            with Live(layout, refresh_per_second=2, screen=True):
+            with Live(layout, refresh_per_second=100, screen=True):
                 layout["header"].update(render_header())
                 layout["footer"].update(render_footer())
                 layout["main"].update(render_pacientes_table())
