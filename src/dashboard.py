@@ -137,7 +137,7 @@ def main():
     try:
         while True:
             # Mostrar dashboard en Live
-            with Live(layout, refresh_per_second=100, screen=True):
+            with Live(layout, refresh_per_second=2, screen=True):
                 layout["header"].update(render_header())
                 layout["footer"].update(render_footer())
                 layout["main"].update(render_pacientes_table())
@@ -145,7 +145,7 @@ def main():
                 layout["left"].update(render_emergencias())
 
                 # Pequeña espera para refresco
-                time.sleep(0.1)
+                time.sleep(1)
 
             # Ahora Live está cerrado temporalmente → input() funciona
             if msvcrt.kbhit():
