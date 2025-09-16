@@ -3,6 +3,7 @@ import os
 import sqlite3
 import time
 import random
+import readchar
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
@@ -43,7 +44,7 @@ def render_header() -> Panel:
     return Panel("[bold cyan]🏥 Sistema de Emergencias - Dashboard[/bold cyan]", expand=True)
 
 def render_footer() -> Panel:
-    return Panel("Presiona CTRL+C para salir | Menú: [1] Agregar Paciente", expand=True)
+    return Panel("Presiona 1 para agregar paciente | CTRL+C para salir", expand=True)
 
 def render_pacientes_table() -> Table:
     conn = conectar()
@@ -67,13 +68,13 @@ def render_pacientes_table() -> Table:
 
     for p in pacientes:
         table.add_row(
-            str(p[0] or "N/A"),           
-            str(p[1] or "Sin nombre"),    
-            str(p[2] or "0"),             
-            str(p[3] or "N/A"),           
-            str(p[4] or "N/A"),           
-            str(p[5] or "N/A"),           
-            str(p[6] or "Sin estado")     
+            str(p[0] or "N/A"),
+            str(p[1] or "Sin nombre"),
+            str(p[2] or "0"),
+            str(p[3] or "N/A"),
+            str(p[4] or "N/A"),
+            str(p[5] or "N/A"),
+            str(p[6] or "Sin estado")
         )
     return table
 
@@ -134,24 +135,28 @@ def main():
     layout = make_layout()
 
     try:
-        while True:
-            # Mostrar dashboard con Live durante 1 segundo
-            with Live(layout, refresh_per_second=2, screen=True):
+        with Live(layout, refresh_per_second=2, screen=True):
+            while True:
                 layout["header"].update(render_header())
                 layout["footer"].update(render_footer())
                 layout["main"].update(render_pacientes_table())
                 layout["right"].update(render_estadisticas())
                 layout["left"].update(render_emergencias())
-                time.sleep(1)
 
-            # Pedir input fuera del Live
-            opcion = input("\nPresiona 1 para agregar paciente o Enter para continuar: ").strip()
-            if opcion == "1":
-                registrar_paciente()
+                # Captura de tecla sin bloquear el dashboard
+                if readchar.kbhit():  # detecta si se presionó una tecla
+                    key = readchar.readkey()
+                    if key == "1":
+                        registrar_paciente()
+                    elif key == readchar.key.CTRL_C:
+                        break
+
+                time.sleep(0.1)  # refresco ligero
 
     except KeyboardInterrupt:
         console.print("\n[bold red]Programa terminado por el usuario.[/bold red]")
 
 if __name__ == "__main__":
     main()
+
 
