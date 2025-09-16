@@ -1,24 +1,19 @@
 import sys
 import os
-
-# Agregar la carpeta raíz del proyecto al path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from modules.pacientes import registrar_paciente
-
-
-
+import sqlite3
+import time
+import random
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.table import Table
 from rich.live import Live
 from rich.progress import Progress, BarColumn, TextColumn
-import sqlite3
-import random
-import time
 
-# Importar funciones de tu módulo pacientes
+# -----------------------------
+# Configurar ruta para importar módulo pacientes
+# -----------------------------
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from modules.pacientes import registrar_paciente
 
 console = Console()
@@ -31,7 +26,6 @@ def conectar():
 # -----------------------------
 # Funciones del dashboard
 # -----------------------------
-
 def make_layout() -> Layout:
     layout = Layout()
     layout.split(
@@ -153,4 +147,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
