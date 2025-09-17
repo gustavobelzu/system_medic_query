@@ -31,57 +31,102 @@ def menu_operaciones():
             break
 
 def mostrar_tabla(tabla):
+    """Muestra todos los registros de la tabla elegida"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM {tabla}")
-    registros = cursor.fetchall()
-    columnas = [desc[0] for desc in cursor.description]
-    conn.close()
+    try:
+        cursor.execute(f"SELECT * FROM {tabla}")
+        registros = cursor.fetchall()
+        columnas = [desc[0] for desc in cursor.description]
 
-    if registros:
-        table = Table(title=f"Registros en {tabla}")
-        for col in columnas:
-            table.add_column(col, style="bold white")
-        for row in registros:
-            table.add_row(*[str(r) for r in row])
-        console.print(table)
-    else:
-        console.print("⚠️ No hay registros en la tabla.", style="bold red")
+        if registros:
+            table = Table(title=f"Registros en {tabla}")
+            for col in columnas:
+                table.add_column(col, style="bold white")
+            for row in registros:
+                table.add_row(*[str(r) for r in row])
+            console.print(table)
+        else:
+            console.print("⚠️ No hay registros en la tabla.", style="bold red")
+    except Exception as e:
+        console.print(f"❌ Error al mostrar la tabla: {e}", style="bold red")
+    finally:
+        conn.close()
 
 def modificar_registro():
     console.print(Panel("✏️ MODIFICAR REGISTRO", style="bold green"))
-    tabla = Prompt.ask("Ingrese el nombre de la tabla a modificar (ej: Paciente, Estado, Usuario)")
+
+    tabla = Prompt.ask("Ingrese el nombre de la tabla (ej: Paciente, Estado, Usuario) o [0] para cancelar")
+    if tabla == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
+
     mostrar_tabla(tabla)
 
-    id_col = Prompt.ask("Ingrese el nombre de la columna ID (ej: id_paciente, id_estado, id_usuario)")
-    id_val = Prompt.ask(f"Ingrese el valor del {id_col} a modificar")
-    campo = Prompt.ask("Ingrese el nombre del campo a modificar")
-    nuevo_valor = Prompt.ask("Ingrese el nuevo valor")
+    id_col = Prompt.ask("Ingrese el nombre de la columna ID (ej: id_paciente, id_estado, id_usuario) o [0] para cancelar")
+    if id_col == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
+
+    id_val = Prompt.ask(f"Ingrese el valor del {id_col} a modificar o [0] para cancelar")
+    if id_val == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
+
+    campo = Prompt.ask("Ingrese el nombre del campo a modificar o [0] para cancelar")
+    if campo == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
+
+    nuevo_valor = Prompt.ask("Ingrese el nuevo valor o [0] para cancelar")
+    if nuevo_valor == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     try:
         cursor.execute(f"UPDATE {tabla} SET {campo} = ? WHERE {id_col} = ?", (nuevo_valor, id_val))
-        conn.commit()
-        console.print("✅ Registro actualizado correctamente", style="bold green")
+        if cursor.rowcount == 0:
+            console.print("⚠️ No se encontró ningún registro con ese ID.", style="yellow")
+        else:
+            conn.commit()
+            console.print("✅ Registro actualizado correctamente", style="bold green")
     except Exception as e:
-        console.print(f"❌ Error: {e}", style="bold red")
-    conn.close()
+        console.print(f"❌ Error al modificar: {e}", style="bold red")
+    finally:
+        conn.close()
 
 def eliminar_registro():
     console.print(Panel("🗑️ ELIMINAR REGISTRO", style="bold red"))
-    tabla = Prompt.ask("Ingrese el nombre de la tabla a eliminar (ej: Paciente, Estado, Usuario)")
+
+    tabla = Prompt.ask("Ingrese el nombre de la tabla (ej: Paciente, Estado, Usuario) o [0] para cancelar")
+    if tabla == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
+
     mostrar_tabla(tabla)
 
-    id_col = Prompt.ask("Ingrese el nombre de la columna ID (ej: id_paciente, id_estado, id_usuario)")
-    id_val = Prompt.ask(f"Ingrese el valor del {id_col} a eliminar")
+    id_col = Prompt.ask("Ingrese el nombre de la columna ID (ej: id_paciente, id_estado, id_usuario) o [0] para cancelar")
+    if id_col == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
+
+    id_val = Prompt.ask(f"Ingrese el valor del {id_col} a eliminar o [0] para cancelar")
+    if id_val == "0":
+        console.print("❌ Operación cancelada", style="yellow")
+        return
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     try:
         cursor.execute(f"DELETE FROM {tabla} WHERE {id_col} = ?", (id_val,))
-        conn.commit()
-        console.print("✅ Registro eliminado correctamente", style="bold green")
+        if cursor.rowcount == 0:
+            console.print("⚠️ No se encontró ningún registro con ese ID.", style="yellow")
+        else:
+            conn.commit()
+            console.print("✅ Registro eliminado correctamente", style="bold green")
     except Exception as e:
-        console.print(f"❌ Error: {e}", style="bold red")
-    conn.close()
+        console.print(f"❌ Error al eliminar: {e}", style="bold red")
+    finally:
+        conn.close()
