@@ -1,14 +1,23 @@
+import sys
+import os
+
+# ==========================
+# Ajustar path para importar modules
+# ==========================
+sys.path.append(os.path.dirname(__file__))  # agrega la carpeta actual al path
+
 from modules.estados import menu_estados
 from modules.pacientes import menu_pacientes
 from modules.usuarios import menu_usuarios
 from modules.ingresos import menu_ingresos
 from modules.egresos import menu_egresos
+
 import sqlite3
+from getpass import getpass
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
-from getpass import getpass
 
 DB_PATH = "database/emergencias.db"
 console = Console()
@@ -42,7 +51,7 @@ def login():
         return None
 
 # ==========================
-# Dashboard estilo panel
+# Dashboard estilo grid (2 filas)
 # ==========================
 def menu_principal(user):
     opciones = [
@@ -56,14 +65,24 @@ def menu_principal(user):
 
     while True:
         console.clear()
-        console.print(Panel(f"SISTEMA DE CONTROL DE EMERGENCIAS\n[bold]Usuario conectado:[/bold] {user[1]} ({user[2]})", style="magenta", expand=False))
+        console.print(Panel(f"SISTEMA DE CONTROL DE EMERGENCIAS\n[bold]Usuario conectado:[/bold] {user[1]} ({user[2]})", style="magenta"))
 
-        # Mostrar opciones en paneles tipo tabla
-        table = Table.grid(padding=2)
+        # Crear tabla tipo grid 2 filas x 3 columnas
+        table = Table.grid(expand=True)
+        table.add_column(ratio=1)
+        table.add_column(ratio=1)
+        table.add_column(ratio=1)
+
+        # Preparar paneles
+        row_panels = []
         for key, title, _ in opciones:
             style = "bold white on blue" if key != "0" else "bold white on red"
-            table.add_column(justify="center")
-            table.add_row(Panel(f"[bold]{key}[/bold]\n{title}", style=style, expand=True))
+            row_panels.append(Panel(f"[bold]{key}[/bold]\n{title}", style=style, expand=True))
+
+        # Añadir paneles a 2 filas
+        table.add_row(*row_panels[:3])
+        table.add_row(*row_panels[3:])
+
         console.print(table)
 
         opcion = Prompt.ask("Seleccione una opción", choices=[str(op[0]) for op in opciones])
@@ -77,6 +96,7 @@ def menu_principal(user):
                 if key == opcion and func:
                     func()
                     break
+
         console.print("\nPresione Enter para volver al dashboard...")
         input()
 
@@ -97,4 +117,3 @@ if __name__ == "__main__":
         menu_principal(usuario)
     else:
         console.print("⚠️ Se han agotado los intentos. Saliendo del sistema.", style="bold red")
-
