@@ -63,22 +63,22 @@ def modificar_registro():
 
     mostrar_tabla(tabla)
 
-    id_col = Prompt.ask("Ingrese el nombre de la columna ID (ej: id_paciente, id_estado, id_usuario) o [0] para cancelar")
+    id_col = Prompt.ask("Ingrese el nombre de la columna a modificar (ej: id_usario, ci, nombre, estado) o [0] para cancelar")
     if id_col == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
 
-    id_val = Prompt.ask(f"Ingrese el valor del {id_col} a modificar o [0] para cancelar")
+    id_val = Prompt.ask(f"Ingrese el valor de la fila {id_col} a modificar o [0] para cancelar")
     if id_val == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
 
-    campo = Prompt.ask("Ingrese el nombre del campo a modificar o [0] para cancelar")
+    campo = Prompt.ask("Ingrese el nombre del campo columna a modificar o [0] para cancelar")
     if campo == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
 
-    nuevo_valor = Prompt.ask("Ingrese el nuevo valor o [0] para cancelar")
+    nuevo_valor = Prompt.ask("Ingrese el nuevo valor del campo o [0] para cancelar")
     if nuevo_valor == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
