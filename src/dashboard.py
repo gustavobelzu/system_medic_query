@@ -1,163 +1,100 @@
-import sys
-import os
+from modules.estados import menu_estados
+from modules.pacientes import menu_pacientes
+from modules.usuarios import menu_usuarios
+from modules.ingresos import menu_ingresos
+from modules.egresos import menu_egresos
 import sqlite3
-import time
-import random
-import msvcrt  # Solo Windows
 from rich.console import Console
-from rich.layout import Layout
 from rich.panel import Panel
+from rich.prompt import Prompt
 from rich.table import Table
-from rich.live import Live
-from rich.progress import Progress, BarColumn, TextColumn
+from getpass import getpass
 
-# -----------------------------
-# Configurar ruta para importar módulo pacientes
-# -----------------------------
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from modules.pacientes import registrar_paciente
-
-console = Console()
 DB_PATH = "database/emergencias.db"
+console = Console()
 
-def conectar():
-    return sqlite3.connect(DB_PATH)
-
-# -----------------------------
-# Funciones del dashboard
-# -----------------------------
-def make_layout() -> Layout:
-    layout = Layout()
-    layout.split(
-        Layout(name="header", size=3),
-        Layout(name="body", ratio=1),
-        Layout(name="footer", size=3)
-    )
-    layout["body"].split_row(
-        Layout(name="left", ratio=1),
-        Layout(name="main", ratio=2),
-        Layout(name="right", ratio=1)
-    )
-    return layout
-
-def render_header() -> Panel:
-    return Panel("[bold cyan]🏥 Sistema de Emergencias - Dashboard[/bold cyan]", expand=True)
-
-def render_footer() -> Panel:
-    return Panel("Presiona 1 para agregar paciente | CTRL+C para salir", expand=True)
-
-def render_pacientes_table() -> Table:
-    conn = conectar()
+# ==========================
+# Función de login
+# ==========================
+def login():
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+
+    console.print(Panel("LOGIN DEL SISTEMA", style="bold cyan"))
+    username = Prompt.ask("Usuario")
+    password = getpass("Contraseña: ")
+
     cursor.execute("""
-        SELECT p.ci, p.nombre, p.edad, p.sexo, p.departamento, p.telefono, e.estado
-        FROM Paciente p
-        LEFT JOIN Estado e ON p.id_estado = e.id_estado
-    """)
-    pacientes = cursor.fetchall()
+        SELECT u.id_usuario, p.nombre, p.cargo
+        FROM Usuario u
+        JOIN Personal p ON u.id_usuario = p.id_usuario
+        WHERE u.username = ? AND u.password = ?
+    """, (username, password))
+
+    user = cursor.fetchone()
     conn.close()
 
-    table = Table(title="Pacientes")
-    table.add_column("CI", justify="center", style="cyan")
-    table.add_column("Nombre", style="magenta")
-    table.add_column("Edad", style="yellow")
-    table.add_column("Sexo", style="green")
-    table.add_column("Depto", style="blue")
-    table.add_column("Tel", style="white")
-    table.add_column("Estado", style="red")
+    if user:
+        console.print(f"✅ Bienvenido [green]{user[1]}[/green] ([yellow]{user[2]}[/yellow])")
+        return user
+    else:
+        console.print("❌ Usuario o contraseña incorrectos.", style="bold red")
+        return None
 
-    for p in pacientes:
-        table.add_row(
-            str(p[0] or "N/A"),
-            str(p[1] or "Sin nombre"),
-            str(p[2] or "0"),
-            str(p[3] or "N/A"),
-            str(p[4] or "N/A"),
-            str(p[5] or "N/A"),
-            str(p[6] or "Sin estado")
-        )
-    return table
+# ==========================
+# Dashboard estilo panel
+# ==========================
+def menu_principal(user):
+    opciones = [
+        ("1", "Gestión de Estados", menu_estados),
+        ("2", "Gestión de Pacientes", menu_pacientes),
+        ("3", "Gestión de Usuarios", menu_usuarios),
+        ("4", "Gestión de Ingresos", menu_ingresos),
+        ("5", "Gestión de Egresos", menu_egresos),
+        ("0", "Salir", None)
+    ]
 
-def render_estadisticas() -> Panel:
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM Paciente")
-    total = cursor.fetchone()[0]
+    while True:
+        console.clear()
+        console.print(Panel(f"SISTEMA DE CONTROL DE EMERGENCIAS\n[bold]Usuario conectado:[/bold] {user[1]} ({user[2]})", style="magenta", expand=False))
 
-    cursor.execute("SELECT COUNT(*) FROM Paciente WHERE id_estado IS NOT NULL")
-    con_estado = cursor.fetchone()[0]
+        # Mostrar opciones en paneles tipo tabla
+        table = Table.grid(padding=2)
+        for key, title, _ in opciones:
+            style = "bold white on blue" if key != "0" else "bold white on red"
+            table.add_column(justify="center")
+            table.add_row(Panel(f"[bold]{key}[/bold]\n{title}", style=style, expand=True))
+        console.print(table)
 
-    cursor.execute("SELECT estado, COUNT(*) FROM Paciente p JOIN Estado e ON p.id_estado = e.id_estado GROUP BY estado")
-    estados = cursor.fetchall()
-    conn.close()
+        opcion = Prompt.ask("Seleccione una opción", choices=[str(op[0]) for op in opciones])
 
-    estado_texto = "\n".join(f"{estado}: [bold green]{cantidad}[/bold green]" for estado, cantidad in estados)
-    texto = f"""
-Total de pacientes: [bold cyan]{total}[/bold cyan]
-Pacientes con estado asignado: [bold green]{con_estado}[/bold green]
-
-Por estado:
-{estado_texto or 'Sin datos'}
-"""
-    return Panel(texto, title="📊 Estadísticas", expand=True)
-
-def render_emergencias() -> Panel:
-    progress = Progress(
-        TextColumn("[bold red]{task.fields[nombre]}", justify="right"),
-        BarColumn(bar_width=None),
-        TextColumn("{task.percentage:>3.0f}%"),
-        expand=True
-    )
-
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT Nombre FROM Paciente p
-        JOIN Estado e ON p.id_estado = e.id_estado
-        WHERE e.estado='Crítico'
-        LIMIT 3
-    """)
-    pacientes_criticos = cursor.fetchall()
-    conn.close()
-
-    if not pacientes_criticos:
-        pacientes_criticos = [("Ninguno",)] * 3
-
-    for p in pacientes_criticos:
-        progress.add_task("", total=100, completed=random.randint(0,100), nombre=p[0])
-
-    return Panel(progress, title="🚨 Emergencias Críticas", expand=True)
-
-# -----------------------------
-# Loop principal del TUI
-# -----------------------------
-def main():
-    layout = make_layout()
-
-    try:
-        while True:
-            # Mostrar dashboard en Live
-            with Live(layout, refresh_per_second=2, screen=True):
-                layout["header"].update(render_header())
-                layout["footer"].update(render_footer())
-                layout["main"].update(render_pacientes_table())
-                layout["right"].update(render_estadisticas())
-                layout["left"].update(render_emergencias())
-
-                # Pequeña espera para refresco
-                time.sleep(1)
-
-            # Ahora Live está cerrado temporalmente → input() funciona
-            if msvcrt.kbhit():
-                key = msvcrt.getwch()
-                if key == "1":
-                    registrar_paciente()  # input() funciona normalmente
-                elif key == "\x03":  # CTRL+C
+        if opcion == "0":
+            console.print("👋 Saliendo del sistema...", style="bold yellow")
+            break
+        else:
+            # Ejecutar función asociada
+            for key, _, func in opciones:
+                if key == opcion and func:
+                    func()
                     break
+        console.print("\nPresione Enter para volver al dashboard...")
+        input()
 
-    except KeyboardInterrupt:
-        console.print("\n[bold red]Programa terminado por el usuario.[/bold red]")
-
+# ==========================
+# Inicio del programa
+# ==========================
 if __name__ == "__main__":
-    main()
+    intentos = 3
+    usuario = None
+
+    while intentos > 0 and not usuario:
+        usuario = login()
+        if not usuario:
+            intentos -= 1
+            console.print(f"Intentos restantes: {intentos}", style="bold red")
+
+    if usuario:
+        menu_principal(usuario)
+    else:
+        console.print("⚠️ Se han agotado los intentos. Saliendo del sistema.", style="bold red")
 
