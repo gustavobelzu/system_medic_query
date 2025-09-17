@@ -53,6 +53,20 @@ def mostrar_tabla(tabla):
     finally:
         conn.close()
 
+def obtener_columnas(tabla):
+    """Devuelve lista de columnas válidas de la tabla"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    columnas = []
+    try:
+        cursor.execute(f"PRAGMA table_info({tabla})")
+        columnas = [col[1] for col in cursor.fetchall()]
+    except Exception as e:
+        console.print(f"❌ Error al obtener columnas: {e}", style="bold red")
+    finally:
+        conn.close()
+    return columnas
+
 def modificar_registro():
     console.print(Panel("✏️ MODIFICAR REGISTRO", style="bold green"))
 
@@ -61,24 +75,35 @@ def modificar_registro():
         console.print("❌ Operación cancelada", style="yellow")
         return
 
+    columnas = obtener_columnas(tabla)
+    if not columnas:
+        console.print("⚠️ Tabla no encontrada.", style="red")
+        return
+
     mostrar_tabla(tabla)
 
-    id_col = Prompt.ask("Ingrese el nombre de la columna a modificar (ej: id_usario, ci, nombre, estado) o [0] para cancelar")
+    id_col = Prompt.ask(f"Ingrese el nombre de la columna ID (opciones: {', '.join(columnas)}) o [0] para cancelar")
     if id_col == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
+    if id_col not in columnas:
+        console.print("⚠️ Columna ID inválida.", style="red")
+        return
 
-    id_val = Prompt.ask(f"Ingrese el valor de la fila {id_col} a modificar o [0] para cancelar")
+    id_val = Prompt.ask(f"Ingrese el valor del {id_col} a modificar o [0] para cancelar")
     if id_val == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
 
-    campo = Prompt.ask("Ingrese el nombre del campo columna a modificar o [0] para cancelar")
+    campo = Prompt.ask(f"Ingrese el campo a modificar (opciones: {', '.join(columnas)}) o [0] para cancelar")
     if campo == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
+    if campo not in columnas:
+        console.print("⚠️ Columna inválida. Solo puede elegir entre sus datos registrados.", style="red")
+        return
 
-    nuevo_valor = Prompt.ask("Ingrese el nuevo valor del campo o [0] para cancelar")
+    nuevo_valor = Prompt.ask("Ingrese el nuevo valor o [0] para cancelar")
     if nuevo_valor == "0":
         console.print("❌ Operación cancelada", style="yellow")
         return
@@ -105,11 +130,19 @@ def eliminar_registro():
         console.print("❌ Operación cancelada", style="yellow")
         return
 
+    columnas = obtener_columnas(tabla)
+    if not columnas:
+        console.print("⚠️ Tabla no encontrada.", style="red")
+        return
+
     mostrar_tabla(tabla)
 
-    id_col = Prompt.ask("Ingrese el nombre de la columna ID (ej: id_paciente, id_estado, id_usuario) o [0] para cancelar")
+    id_col = Prompt.ask(f"Ingrese el nombre de la columna ID (opciones: {', '.join(columnas)}) o [0] para cancelar")
     if id_col == "0":
         console.print("❌ Operación cancelada", style="yellow")
+        return
+    if id_col not in columnas:
+        console.print("⚠️ Columna ID inválida.", style="red")
         return
 
     id_val = Prompt.ask(f"Ingrese el valor del {id_col} a eliminar o [0] para cancelar")
@@ -130,3 +163,4 @@ def eliminar_registro():
         console.print(f"❌ Error al eliminar: {e}", style="bold red")
     finally:
         conn.close()
+
