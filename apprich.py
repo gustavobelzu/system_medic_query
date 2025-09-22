@@ -92,7 +92,7 @@ def menu_principal(user):
         elif opcion == "5":
             menu_egresos()
         elif opcion == "6":
-            menu_consultas()
+            menu_consultas(usuario)
         elif opcion == "0":
             console.print("👋 Saliendo del sistema...", style="bold yellow")
             break
