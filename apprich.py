@@ -1,3 +1,10 @@
+import sys
+import os
+import sqlite3 
+
+# Agregar la carpeta src al path
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
 from modules.estados import menu_estados
 from modules.pacientes import menu_pacientes
 from modules.usuarios import menu_usuarios
