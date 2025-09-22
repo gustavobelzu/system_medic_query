@@ -78,7 +78,7 @@ def menu_principal(user):
         console.print("[cyan]6.[/cyan] Consultas y Reportes")
         console.print("[cyan]0.[/cyan] Salir")
 
-        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4","5"])
+        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4","5","6"])
 
         if opcion == "1":
             menu_estados()
