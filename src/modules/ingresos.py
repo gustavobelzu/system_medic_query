@@ -6,6 +6,9 @@ DB_PATH = "database/emergencias.db"
 def conectar():
     return sqlite3.connect(DB_PATH)
 
+# ==========================
+# Registrar ingreso
+# ==========================
 def registrar_ingreso():
     conn = conectar()
     cursor = conn.cursor()
@@ -48,7 +51,9 @@ def registrar_ingreso():
     finally:
         conn.close()
 
-
+# ==========================
+# Listar ingresos
+# ==========================
 def listar_ingresos():
     conn = conectar()
     cursor = conn.cursor()
@@ -69,14 +74,77 @@ def listar_ingresos():
     for i in ingresos:
         print(f"ID: {i[0]} | Paciente: {i[1]} | Fecha: {i[2]} {i[3]} | Servicio: {i[4]} | Cama: {i[5]}")
 
+# ==========================
+# Actualizar ingreso
+# ==========================
+def actualizar_ingreso():
+    listar_ingresos()
+    id_ingreso = input("\nIngrese el ID del ingreso a modificar: ").strip()
 
+    conn = conectar()
+    cursor = conn.cursor()
+
+    # Verificar si existe
+    cursor.execute("SELECT fecha_ingreso, hora_ingreso, servicio_hospitalario, cama FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
+    ingreso = cursor.fetchone()
+    if not ingreso:
+        print("⚠️ No se encontró el ingreso con ese ID.")
+        conn.close()
+        return
+
+    fecha_actual, hora_actual, servicio_actual, cama_actual = ingreso
+
+    fecha_ingreso = input(f"Nuevo fecha de ingreso (ENTER para {fecha_actual}): ").strip() or fecha_actual
+    hora_ingreso = input(f"Nuevo hora de ingreso (ENTER para {hora_actual}): ").strip() or hora_actual
+    servicio = input(f"Nuevo servicio hospitalario (ENTER para {servicio_actual}): ").strip() or servicio_actual
+    cama = input(f"Nuevo número de cama (ENTER para {cama_actual}): ").strip() or cama_actual
+
+    try:
+        cursor.execute("""
+            UPDATE Ingreso
+            SET fecha_ingreso = ?, hora_ingreso = ?, servicio_hospitalario = ?, cama = ?
+            WHERE id_ingreso = ?
+        """, (fecha_ingreso, hora_ingreso, servicio, cama, id_ingreso))
+        conn.commit()
+        print("✅ Ingreso actualizado con éxito.")
+    except Exception as e:
+        print("⚠️ Ocurrió un error:", e)
+    finally:
+        conn.close()
+
+# ==========================
+# Eliminar ingreso
+# ==========================
+def eliminar_ingreso():
+    listar_ingresos()
+    id_ingreso = input("\nIngrese el ID del ingreso a eliminar: ").strip()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("DELETE FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
+        if cursor.rowcount == 0:
+            print("⚠️ No se encontró el ingreso con ese ID.")
+        else:
+            conn.commit()
+            print("✅ Ingreso eliminado con éxito.")
+    except Exception as e:
+        print("⚠️ Ocurrió un error:", e)
+    finally:
+        conn.close()
+
+# ==========================
 # Menú del módulo
+# ==========================
 def menu_ingresos():
     while True:
         print("\n--- MÓDULO INGRESOS ---")
         print("1. Registrar ingreso")
         print("2. Listar ingresos")
-        print("3. Salir")
+        print("3. Actualizar ingreso")
+        print("4. Eliminar ingreso")
+        print("0. Volver")
 
         opcion = input("Seleccione una opción: ").strip()
 
@@ -85,10 +153,17 @@ def menu_ingresos():
         elif opcion == "2":
             listar_ingresos()
         elif opcion == "3":
+            actualizar_ingreso()
+        elif opcion == "4":
+            eliminar_ingreso()
+        elif opcion == "0":
             break
         else:
             print("❌ Opción inválida.")
 
-
+# ==========================
+# Ejecutar módulo directamente
+# ==========================
 if __name__ == "__main__":
     menu_ingresos()
+
