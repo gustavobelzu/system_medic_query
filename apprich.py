@@ -76,7 +76,7 @@ def menu_principal(user):
         console.print("[cyan]3.[/cyan] Gestión de Usuarios")
         console.print("[cyan]4.[/cyan] Gestión de Ingresos")
         console.print("[cyan]5.[/cyan] Gestión de Egresos")
-        console.print("[cyan]6.[/cyan] Consultas Interactivas")
+        console.print("[cyan]6.[/cyan] Consultas y Reportes")
         console.print("[cyan]0.[/cyan] Salir")
 
         opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4","5","6"])

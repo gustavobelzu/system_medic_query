@@ -18,9 +18,9 @@ def conectar():
     return sqlite3.connect(DB_PATH)
 
 # ==========================
-# Mostrar tabla con Rich
+# Mostrar tabla con Rich + auditoría
 # ==========================
-def mostrar_tabla(headers, rows, title="Consulta"):
+def mostrar_tabla(headers, rows, title="Consulta", usuario=None, fecha=None, hora=None):
     table = Table(title=title)
     for h in headers:
         table.add_column(h)
@@ -28,10 +28,14 @@ def mostrar_tabla(headers, rows, title="Consulta"):
         table.add_row(*[str(r) if r is not None else "" for r in row])
     console.print(table)
 
+    # Auditoría al final
+    if usuario and fecha and hora:
+        console.print(f"[bold]Reporte generado por:[/bold] {usuario} | [bold]Fecha:[/bold] {fecha} | [bold]Hora:[/bold] {hora}", style="cyan")
+
 # ==========================
-# Exportar a PDF
+# Exportar a PDF + auditoría
 # ==========================
-def exportar_pdf(headers, rows, title="Consulta"):
+def exportar_pdf(headers, rows, title="Consulta", usuario=None, fecha=None, hora=None):
     ruta = Prompt.ask("Ruta completa para guardar el PDF (ej: C:/Users/Usuario/Desktop/consulta.pdf)")
     ruta = Path(ruta)
     ruta.parent.mkdir(parents=True, exist_ok=True)  # Crear carpeta si no existe
@@ -57,9 +61,26 @@ def exportar_pdf(headers, rows, title="Consulta"):
         for i, r in enumerate(row):
             c.drawString(50 + i*100, y, str(r))
         y -= 20
+        if y < 70:  # dejar espacio para auditoría
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(50, y, title)
+            y -= 30
+            c.setFont("Helvetica-Bold", 12)
+            for i, h in enumerate(headers):
+                c.drawString(50 + i*100, y, h)
+            y -= 20
+            c.setFont("Helvetica", 10)
+
+    # Auditoría al final
+    if usuario and fecha and hora:
+        y -= 10
         if y < 50:
             c.showPage()
             y = height - 50
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, f"Reporte generado por: {usuario} | Fecha: {fecha} | Hora: {hora}")
 
     c.save()
     console.print(f"✅ PDF generado en: {ruta}", style="green")
@@ -106,19 +127,25 @@ def consultas(user=None):
             hora_actual = datetime.now().strftime("%H:%M")
             usuario_actual = user[1] if user else "N/A"
 
-            # Mostrar tabla con Rich
+            # Mostrar tabla en consola con auditoría única
             mostrar_tabla(
-                headers=(columnas_a_mostrar if columnas_a_mostrar != "*" else columnas) + ["Fecha", "Hora", "Usuario"],
-                rows=[list(r) + [fecha_actual, hora_actual, usuario_actual] for r in rows],
-                title=f"Consulta: {tabla}"
+                headers=columnas_a_mostrar if columnas_a_mostrar != "*" else columnas,
+                rows=rows,
+                title=f"Consulta: {tabla}",
+                usuario=usuario_actual,
+                fecha=fecha_actual,
+                hora=hora_actual
             )
 
             # Exportar a PDF
             if rows and Prompt.ask("¿Exportar a PDF? (s/n)", choices=["s","n"], default="n") == "s":
                 exportar_pdf(
-                    headers=(columnas_a_mostrar if columnas_a_mostrar != "*" else columnas) + ["Fecha", "Hora", "Usuario"],
-                    rows=[list(r) + [fecha_actual, hora_actual, usuario_actual] for r in rows],
-                    title=f"Consulta: {tabla}"
+                    headers=columnas_a_mostrar if columnas_a_mostrar != "*" else columnas,
+                    rows=rows,
+                    title=f"Consulta: {tabla}",
+                    usuario=usuario_actual,
+                    fecha=fecha_actual,
+                    hora=hora_actual
                 )
 
         except Exception as e:
