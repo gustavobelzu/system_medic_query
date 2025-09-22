@@ -1,5 +1,22 @@
+import sqlite3
+from rich.console import Console
+from rich.table import Table
+from rich.prompt import Prompt
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 from datetime import datetime
+from pathlib import Path
 
+DB_PATH = "database/emergencias.db"
+console = Console()
+
+# ==========================
+# Conexión a la base de datos
+# ==========================
+def conectar():
+    return sqlite3.connect(DB_PATH)
+
+from datetime import datetime
 from pathlib import Path
 
 # ==========================
