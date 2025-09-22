@@ -1,7 +1,11 @@
 import sqlite3
 from datetime import datetime
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.table import Table
 
 DB_PATH = "database/emergencias.db"
+console = Console()
 
 def conectar():
     return sqlite3.connect(DB_PATH)
@@ -13,9 +17,9 @@ def registrar_egreso():
     conn = conectar()
     cursor = conn.cursor()
 
-    print("\n=== Registro de Egreso ===")
+    console.print("\n=== Registro de Egreso ===", style="bold cyan")
 
-    # Seleccionar ingresos activos
+    # Mostrar ingresos activos (sin egreso)
     cursor.execute("""
         SELECT i.id_ingreso, p.nombre, i.fecha_ingreso, i.hora_ingreso, i.servicio_hospitalario
         FROM Ingreso i
@@ -24,54 +28,51 @@ def registrar_egreso():
         WHERE e.id_egreso IS NULL
     """)
     ingresos = cursor.fetchall()
-
     if not ingresos:
-        print("⚠️ No hay ingresos activos para egreso.")
+        console.print("⚠️ No hay ingresos activos para egreso.", style="red")
         conn.close()
         return
 
-    print("\nIngresos activos:")
+    table = Table(title="Ingresos Activos")
+    table.add_column("ID Ingreso", justify="center")
+    table.add_column("Paciente")
+    table.add_column("Fecha")
+    table.add_column("Hora")
+    table.add_column("Servicio")
     for i in ingresos:
-        print(f"ID Ingreso: {i[0]} | Paciente: {i[1]} | Fecha: {i[2]} {i[3]} | Servicio: {i[4]}")
+        table.add_row(str(i[0]), i[1], i[2], i[3], i[4])
+    console.print(table)
 
-    id_ingreso = input("Seleccione ID de ingreso para egreso: ").strip()
-
-    # Verificar que el ingreso exista
+    id_ingreso = Prompt.ask("Seleccione ID de ingreso para egreso").strip()
     ingreso_ids = [str(i[0]) for i in ingresos]
     if id_ingreso not in ingreso_ids:
-        print("❌ Ingreso inválido.")
+        console.print("❌ Ingreso inválido.", style="red")
         conn.close()
         return
 
-    fecha_egreso = input("Fecha de egreso (YYYY-MM-DD, ENTER para hoy): ").strip()
-    if not fecha_egreso:
-        fecha_egreso = datetime.now().strftime("%Y-%m-%d")
-
-    hora_egreso = input("Hora de egreso (HH:MM, ENTER para ahora): ").strip()
-    if not hora_egreso:
-        hora_egreso = datetime.now().strftime("%H:%M")
-
-    # Obtener CI y fecha ingreso
+    # Obtener CI y fecha de ingreso
     cursor.execute("SELECT ci, fecha_ingreso FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
     ci, fecha_ingreso = cursor.fetchone()
+
+    fecha_egreso = Prompt.ask("Fecha de egreso (YYYY-MM-DD, ENTER para hoy)").strip() or datetime.now().strftime("%Y-%m-%d")
+    hora_egreso = Prompt.ask("Hora de egreso (HH:MM, ENTER para ahora)").strip() or datetime.now().strftime("%H:%M")
 
     # Calcular estancia en días
     fecha_ingreso_dt = datetime.strptime(fecha_ingreso, "%Y-%m-%d")
     fecha_egreso_dt = datetime.strptime(fecha_egreso, "%Y-%m-%d")
     estancia = (fecha_egreso_dt - fecha_ingreso_dt).days
 
-    estado_egreso = input("Estado de egreso (Recuperado, Trasladado, Fallecido): ").strip()
+    estado_egreso = Prompt.ask("Estado de egreso (Recuperado, Trasladado, Fallecido)").strip()
 
     try:
         cursor.execute("""
             INSERT INTO Egreso (id_ingreso, ci, fecha_egreso, hora_egreso, estancia, estado_egreso)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (id_ingreso, ci, fecha_egreso, hora_egreso, estancia, estado_egreso))
-
         conn.commit()
-        print("✅ Egreso registrado con éxito.")
+        console.print("✅ Egreso registrado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -91,53 +92,49 @@ def listar_egresos():
     conn.close()
 
     if not egresos:
-        print("⚠️ No hay egresos registrados.")
+        console.print("⚠️ No hay egresos registrados.", style="red")
         return
-    
-    print("\n=== Lista de Egresos ===")
+
+    table = Table(title="Lista de Egresos")
+    table.add_column("ID", justify="center")
+    table.add_column("Paciente")
+    table.add_column("Fecha")
+    table.add_column("Hora")
+    table.add_column("Estancia (días)")
+    table.add_column("Estado")
     for e in egresos:
-        print(f"ID: {e[0]} | Paciente: {e[1]} | Fecha: {e[2]} {e[3]} | Estancia: {e[4]} días | Estado: {e[5]}")
+        table.add_row(str(e[0]), e[1], e[2], e[3], str(e[4]), e[5])
+    console.print(table)
 
 # ==========================
 # Actualizar egreso
 # ==========================
 def actualizar_egreso():
     listar_egresos()
-    id_egreso = input("\nIngrese el ID del egreso a modificar: ").strip()
-
+    id_egreso = Prompt.ask("Ingrese ID de egreso a modificar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
-    # Verificar si existe
-    cursor.execute("SELECT id_egreso FROM Egreso WHERE id_egreso = ?", (id_egreso,))
-    if not cursor.fetchone():
-        print("⚠️ No se encontró el egreso con ese ID.")
+    cursor.execute("SELECT fecha_egreso, hora_egreso, estado_egreso FROM Egreso WHERE id_egreso = ?", (id_egreso,))
+    egreso = cursor.fetchone()
+    if not egreso:
+        console.print("⚠️ No se encontró el egreso.", style="red")
         conn.close()
         return
 
-    fecha_egreso = input("Nueva fecha de egreso (YYYY-MM-DD, ENTER para no cambiar): ").strip()
-    hora_egreso = input("Nueva hora de egreso (HH:MM, ENTER para no cambiar): ").strip()
-    estado_egreso = input("Nuevo estado de egreso (Recuperado, Trasladado, Fallecido, ENTER para no cambiar): ").strip()
-
-    # Obtener datos actuales si el usuario no quiere cambiar
-    cursor.execute("SELECT fecha_egreso, hora_egreso, estado_egreso FROM Egreso WHERE id_egreso = ?", (id_egreso,))
-    fecha_actual, hora_actual, estado_actual = cursor.fetchone()
+    fecha_egreso = Prompt.ask(f"Fecha (ENTER para {egreso[0]})").strip() or egreso[0]
+    hora_egreso = Prompt.ask(f"Hora (ENTER para {egreso[1]})").strip() or egreso[1]
+    estado_egreso = Prompt.ask(f"Estado (ENTER para {egreso[2]})").strip() or egreso[2]
 
     try:
         cursor.execute("""
             UPDATE Egreso
             SET fecha_egreso = ?, hora_egreso = ?, estado_egreso = ?
             WHERE id_egreso = ?
-        """, (
-            fecha_egreso if fecha_egreso else fecha_actual,
-            hora_egreso if hora_egreso else hora_actual,
-            estado_egreso if estado_egreso else estado_actual,
-            id_egreso
-        ))
+        """, (fecha_egreso, hora_egreso, estado_egreso, id_egreso))
         conn.commit()
-        print("✅ Egreso actualizado con éxito.")
+        console.print("✅ Egreso actualizado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -146,20 +143,18 @@ def actualizar_egreso():
 # ==========================
 def eliminar_egreso():
     listar_egresos()
-    id_egreso = input("\nIngrese el ID del egreso a eliminar: ").strip()
-
+    id_egreso = Prompt.ask("Ingrese ID de egreso a eliminar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
     try:
         cursor.execute("DELETE FROM Egreso WHERE id_egreso = ?", (id_egreso,))
         if cursor.rowcount == 0:
-            print("⚠️ No se encontró el egreso con ese ID.")
+            console.print("⚠️ No se encontró el egreso.", style="red")
         else:
             conn.commit()
-            print("✅ Egreso eliminado con éxito.")
+            console.print("✅ Egreso eliminado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -168,15 +163,13 @@ def eliminar_egreso():
 # ==========================
 def menu_egresos():
     while True:
-        print("\n--- MÓDULO EGRESOS ---")
-        print("1. Registrar egreso")
-        print("2. Listar egresos")
-        print("3. Actualizar egreso")
-        print("4. Eliminar egreso")
-        print("0. Volver")
-
-        opcion = input("Seleccione una opción: ").strip()
-
+        console.print("\n--- MÓDULO EGRESOS ---", style="bold magenta")
+        console.print("1. Registrar egreso")
+        console.print("2. Listar egresos")
+        console.print("3. Actualizar egreso")
+        console.print("4. Eliminar egreso")
+        console.print("0. Volver")
+        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4"])
         if opcion == "1":
             registrar_egreso()
         elif opcion == "2":
@@ -187,11 +180,7 @@ def menu_egresos():
             eliminar_egreso()
         elif opcion == "0":
             break
-        else:
-            print("❌ Opción inválida.")
 
-# ==========================
-# Ejecutar módulo directamente
-# ==========================
 if __name__ == "__main__":
     menu_egresos()
+

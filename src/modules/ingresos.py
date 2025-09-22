@@ -1,7 +1,11 @@
 import sqlite3
 from datetime import datetime
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.table import Table
 
 DB_PATH = "database/emergencias.db"
+console = Console()
 
 def conectar():
     return sqlite3.connect(DB_PATH)
@@ -13,41 +17,32 @@ def registrar_ingreso():
     conn = conectar()
     cursor = conn.cursor()
 
-    print("\n=== Registro de Ingreso ===")
-
-    ci = input("CI del paciente: ").strip()
+    console.print("\n=== Registro de Ingreso ===", style="bold cyan")
+    ci = Prompt.ask("CI del paciente").strip()
 
     # Verificar si el paciente existe
     cursor.execute("SELECT nombre FROM Paciente WHERE ci = ?", (ci,))
     paciente = cursor.fetchone()
     if not paciente:
-        print("❌ Error: No existe un paciente con ese CI.")
+        console.print("❌ No existe un paciente con ese CI.", style="red")
         conn.close()
         return
-    
-    print(f"Paciente encontrado: {paciente[0]}")
+    console.print(f"Paciente encontrado: {paciente[0]}")
 
-    fecha_ingreso = input("Fecha de ingreso (YYYY-MM-DD, ENTER para hoy): ").strip()
-    if not fecha_ingreso:
-        fecha_ingreso = datetime.now().strftime("%Y-%m-%d")
-
-    hora_ingreso = input("Hora de ingreso (HH:MM, ENTER para ahora): ").strip()
-    if not hora_ingreso:
-        hora_ingreso = datetime.now().strftime("%H:%M")
-
-    servicio = input("Servicio hospitalario (Ej: Emergencias, Terapia Intensiva): ").strip()
-    cama = input("Número de cama: ").strip()
+    fecha_ingreso = Prompt.ask("Fecha de ingreso (YYYY-MM-DD, ENTER para hoy)").strip() or datetime.now().strftime("%Y-%m-%d")
+    hora_ingreso = Prompt.ask("Hora de ingreso (HH:MM, ENTER para ahora)").strip() or datetime.now().strftime("%H:%M")
+    servicio = Prompt.ask("Servicio hospitalario (Ej: Emergencias, UCI)").strip()
+    cama = Prompt.ask("Número de cama").strip()
 
     try:
         cursor.execute("""
             INSERT INTO Ingreso (ci, fecha_ingreso, hora_ingreso, servicio_hospitalario, cama)
             VALUES (?, ?, ?, ?, ?)
         """, (ci, fecha_ingreso, hora_ingreso, servicio, cama))
-
         conn.commit()
-        print("✅ Ingreso registrado con éxito.")
+        console.print("✅ Ingreso registrado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -67,37 +62,39 @@ def listar_ingresos():
     conn.close()
 
     if not ingresos:
-        print("⚠️ No hay ingresos registrados.")
+        console.print("⚠️ No hay ingresos registrados.", style="red")
         return
-    
-    print("\n=== Lista de Ingresos ===")
+
+    table = Table(title="Lista de Ingresos")
+    table.add_column("ID", justify="center")
+    table.add_column("Paciente")
+    table.add_column("Fecha")
+    table.add_column("Hora")
+    table.add_column("Servicio")
+    table.add_column("Cama")
     for i in ingresos:
-        print(f"ID: {i[0]} | Paciente: {i[1]} | Fecha: {i[2]} {i[3]} | Servicio: {i[4]} | Cama: {i[5]}")
+        table.add_row(str(i[0]), i[1], i[2], i[3], i[4], i[5])
+    console.print(table)
 
 # ==========================
 # Actualizar ingreso
 # ==========================
 def actualizar_ingreso():
     listar_ingresos()
-    id_ingreso = input("\nIngrese el ID del ingreso a modificar: ").strip()
-
+    id_ingreso = Prompt.ask("Ingrese ID de ingreso a modificar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
-    # Verificar si existe
-    cursor.execute("SELECT fecha_ingreso, hora_ingreso, servicio_hospitalario, cama FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
+    cursor.execute("SELECT ci, fecha_ingreso, hora_ingreso, servicio_hospitalario, cama FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
     ingreso = cursor.fetchone()
     if not ingreso:
-        print("⚠️ No se encontró el ingreso con ese ID.")
+        console.print("⚠️ No se encontró el ingreso.", style="red")
         conn.close()
         return
 
-    fecha_actual, hora_actual, servicio_actual, cama_actual = ingreso
-
-    fecha_ingreso = input(f"Nuevo fecha de ingreso (ENTER para {fecha_actual}): ").strip() or fecha_actual
-    hora_ingreso = input(f"Nuevo hora de ingreso (ENTER para {hora_actual}): ").strip() or hora_actual
-    servicio = input(f"Nuevo servicio hospitalario (ENTER para {servicio_actual}): ").strip() or servicio_actual
-    cama = input(f"Nuevo número de cama (ENTER para {cama_actual}): ").strip() or cama_actual
+    fecha_ingreso = Prompt.ask(f"Fecha (ENTER para {ingreso[1]})").strip() or ingreso[1]
+    hora_ingreso = Prompt.ask(f"Hora (ENTER para {ingreso[2]})").strip() or ingreso[2]
+    servicio = Prompt.ask(f"Servicio (ENTER para {ingreso[3]})").strip() or ingreso[3]
+    cama = Prompt.ask(f"Cama (ENTER para {ingreso[4]})").strip() or ingreso[4]
 
     try:
         cursor.execute("""
@@ -106,9 +103,9 @@ def actualizar_ingreso():
             WHERE id_ingreso = ?
         """, (fecha_ingreso, hora_ingreso, servicio, cama, id_ingreso))
         conn.commit()
-        print("✅ Ingreso actualizado con éxito.")
+        console.print("✅ Ingreso actualizado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -117,20 +114,18 @@ def actualizar_ingreso():
 # ==========================
 def eliminar_ingreso():
     listar_ingresos()
-    id_ingreso = input("\nIngrese el ID del ingreso a eliminar: ").strip()
-
+    id_ingreso = Prompt.ask("Ingrese ID de ingreso a eliminar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
     try:
         cursor.execute("DELETE FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
         if cursor.rowcount == 0:
-            print("⚠️ No se encontró el ingreso con ese ID.")
+            console.print("⚠️ No se encontró el ingreso.", style="red")
         else:
             conn.commit()
-            print("✅ Ingreso eliminado con éxito.")
+            console.print("✅ Ingreso eliminado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -139,15 +134,13 @@ def eliminar_ingreso():
 # ==========================
 def menu_ingresos():
     while True:
-        print("\n--- MÓDULO INGRESOS ---")
-        print("1. Registrar ingreso")
-        print("2. Listar ingresos")
-        print("3. Actualizar ingreso")
-        print("4. Eliminar ingreso")
-        print("0. Volver")
-
-        opcion = input("Seleccione una opción: ").strip()
-
+        console.print("\n--- MÓDULO INGRESOS ---", style="bold magenta")
+        console.print("1. Registrar ingreso")
+        console.print("2. Listar ingresos")
+        console.print("3. Actualizar ingreso")
+        console.print("4. Eliminar ingreso")
+        console.print("0. Volver")
+        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4"])
         if opcion == "1":
             registrar_ingreso()
         elif opcion == "2":
@@ -158,12 +151,8 @@ def menu_ingresos():
             eliminar_ingreso()
         elif opcion == "0":
             break
-        else:
-            print("❌ Opción inválida.")
 
-# ==========================
-# Ejecutar módulo directamente
-# ==========================
 if __name__ == "__main__":
     menu_ingresos()
+
 
