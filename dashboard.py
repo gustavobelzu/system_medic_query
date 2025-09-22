@@ -5,7 +5,6 @@ import os
 # Ajustar path para importar modules
 # ==========================
 sys.path.append(os.path.dirname(__file__))
-from modules.operaciones import menu_operaciones
 from modules.estados import menu_estados
 from modules.pacientes import menu_pacientes
 from modules.usuarios import menu_usuarios
