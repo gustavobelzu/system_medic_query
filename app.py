@@ -36,31 +36,6 @@ def login():
         return None
 
 # ==========================
-# Función para mostrar registros
-# ==========================
-def ver_datos():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    tablas = ["Estado", "Paciente", "Usuario", "Personal", "Ingreso", "Egreso", "Ingreso_Personal"]
-
-    print("\n=== DATOS INSERTADOS EN LA BASE ===")
-    for tabla in tablas:
-        print(f"\n📌 Tabla: {tabla}")
-        try:
-            cursor.execute(f"SELECT * FROM {tabla}")
-            filas = cursor.fetchall()
-            if filas:
-                for fila in filas:
-                    print(fila)
-            else:
-                print("   (sin registros)")
-        except Exception as e:
-            print(f"   ⚠️ Error al consultar {tabla}: {e}")
-
-    conn.close()
-
-# ==========================
 # Menú principal
 # ==========================
 def menu_principal(user):
@@ -72,7 +47,6 @@ def menu_principal(user):
         print("3. Gestión de Usuarios")
         print("4. Gestión de Ingresos")
         print("5. Gestión de Egresos")
-        print("6. Ver datos insertados")  # <--- Nueva opción
         print("0. Salir")
 
         opcion = input("Seleccione una opción: ").strip()
@@ -87,8 +61,6 @@ def menu_principal(user):
             menu_ingresos()
         elif opcion == "5":
             menu_egresos()
-        elif opcion == "6":
-            ver_datos()
         elif opcion == "0":
             print("👋 Saliendo del sistema...")
             break

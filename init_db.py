@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS Paciente (
     FOREIGN KEY (id_estado) REFERENCES Estado(id_estado)
 )
 """)
+
 # ==========================
 # TABLA: Ingreso
 # ==========================
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS Ingreso (
     FOREIGN KEY (ci) REFERENCES Paciente(ci)
 )
 """)
+
 # ==========================
 # TABLA: Usuario (login)
 # ==========================
@@ -54,6 +56,7 @@ CREATE TABLE IF NOT EXISTS Usuario (
     password TEXT NOT NULL
 )
 """)
+
 # ==========================
 # TABLA: Personal (información del trabajador)
 # ==========================
@@ -67,6 +70,7 @@ CREATE TABLE IF NOT EXISTS Personal (
     FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
 )
 """)
+
 # ==========================
 # TABLA: Egreso
 # ==========================
@@ -84,8 +88,21 @@ CREATE TABLE IF NOT EXISTS Egreso (
 )
 """)
 
+# ==========================
+# TABLA: Ingreso_Personal (relación muchos a muchos)
+# ==========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS Ingreso_Personal (
+    id_ingreso INTEGER NOT NULL,
+    id_personal INTEGER NOT NULL,
+    rol TEXT, -- Ej: Médico tratante, Enfermera de guardia, Administrativo
+    PRIMARY KEY (id_ingreso, id_personal),
+    FOREIGN KEY (id_ingreso) REFERENCES Ingreso(id_ingreso),
+    FOREIGN KEY (id_personal) REFERENCES Personal(id_personal)
+)
+""")
+
 conn.commit()
 conn.close()
 
-print("✅ Base de datos emergencias.db creada con tabla intermedia Ingreso_Personal")
-
+print("✅ Base de datos emergencias.db creada con todas las tablas (incluyendo Ingreso_Personal)")
