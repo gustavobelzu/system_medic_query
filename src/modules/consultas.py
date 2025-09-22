@@ -1,3 +1,4 @@
+# src/modules/consultas.py
 import sqlite3
 from rich.console import Console
 from rich.table import Table
@@ -16,30 +17,41 @@ console = Console()
 def conectar():
     return sqlite3.connect(DB_PATH)
 
-from datetime import datetime
-from pathlib import Path
+# ==========================
+# Mostrar tabla con Rich
+# ==========================
+def mostrar_tabla(headers, rows, title="Consulta"):
+    table = Table(title=title)
+    for h in headers:
+        table.add_column(h)
+    for row in rows:
+        table.add_row(*[str(r) if r is not None else "" for r in row])
+    console.print(table)
 
 # ==========================
-# Exportar a PDF con opción de ruta
+# Exportar a PDF
 # ==========================
 def exportar_pdf(headers, rows, title="Consulta"):
-    # Preguntar ruta completa al usuario
     ruta = Prompt.ask("Ruta completa para guardar el PDF (ej: C:/Users/Usuario/Desktop/consulta.pdf)")
-    ruta = Path(ruta)  # Convierte a Path
-    ruta.parent.mkdir(parents=True, exist_ok=True)  # Crea carpeta si no existe
+    ruta = Path(ruta)
+    ruta.parent.mkdir(parents=True, exist_ok=True)  # Crear carpeta si no existe
 
     c = canvas.Canvas(str(ruta), pagesize=letter)
     width, height = letter
     y = height - 50
+
+    # Encabezado
     c.setFont("Helvetica-Bold", 16)
     c.drawString(50, y, title)
     y -= 30
 
+    # Columnas
     c.setFont("Helvetica-Bold", 12)
     for i, h in enumerate(headers):
         c.drawString(50 + i*100, y, h)
     y -= 20
 
+    # Filas
     c.setFont("Helvetica", 10)
     for row in rows:
         for i, r in enumerate(row):
@@ -52,11 +64,12 @@ def exportar_pdf(headers, rows, title="Consulta"):
     c.save()
     console.print(f"✅ PDF generado en: {ruta}", style="green")
 
-
+# ==========================
+# Función principal de consultas
+# ==========================
 def consultas(user=None):
     conn = conectar()
     cursor = conn.cursor()
-
     tablas_disponibles = ["Paciente", "Estado", "Ingreso", "Egreso", "Usuario", "Personal", "Ingreso_Personal"]
 
     while True:
@@ -88,26 +101,25 @@ def consultas(user=None):
             cursor.execute(query)
             rows = cursor.fetchall()
 
-            # Obtener fecha, hora y usuario actual
+            # Auditoría
             fecha_actual = datetime.now().strftime("%Y-%m-%d")
             hora_actual = datetime.now().strftime("%H:%M")
             usuario_actual = user[1] if user else "N/A"
 
-            # Mostrar tabla
+            # Mostrar tabla con Rich
             mostrar_tabla(
-                columns=(columnas_a_mostrar if columnas_a_mostrar != "*" else columnas) + ["Fecha", "Hora", "Usuario"],
+                headers=(columnas_a_mostrar if columnas_a_mostrar != "*" else columnas) + ["Fecha", "Hora", "Usuario"],
                 rows=[list(r) + [fecha_actual, hora_actual, usuario_actual] for r in rows],
                 title=f"Consulta: {tabla}"
             )
 
-            # Exportar a PDF si desea
+            # Exportar a PDF
             if rows and Prompt.ask("¿Exportar a PDF? (s/n)", choices=["s","n"], default="n") == "s":
-                    exportar_pdf(
-                            headers=(columnas_a_mostrar if columnas_a_mostrar != "*" else columnas) + ["Fecha", "Hora", "Usuario"],
-                            rows=[list(r) + [fecha_actual, hora_actual, usuario_actual] for r in rows],
-                            title=f"Consulta: {tabla}"
-                    )
-
+                exportar_pdf(
+                    headers=(columnas_a_mostrar if columnas_a_mostrar != "*" else columnas) + ["Fecha", "Hora", "Usuario"],
+                    rows=[list(r) + [fecha_actual, hora_actual, usuario_actual] for r in rows],
+                    title=f"Consulta: {tabla}"
+                )
 
         except Exception as e:
             console.print(f"❌ Error en la consulta: {e}", style="red")
