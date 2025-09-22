@@ -6,13 +6,16 @@ DB_PATH = "database/emergencias.db"
 def conectar():
     return sqlite3.connect(DB_PATH)
 
+# ==========================
+# Registrar egreso
+# ==========================
 def registrar_egreso():
     conn = conectar()
     cursor = conn.cursor()
 
     print("\n=== Registro de Egreso ===")
 
-    # Seleccionar ingreso activo
+    # Seleccionar ingresos activos
     cursor.execute("""
         SELECT i.id_ingreso, p.nombre, i.fecha_ingreso, i.hora_ingreso, i.servicio_hospitalario
         FROM Ingreso i
@@ -48,7 +51,7 @@ def registrar_egreso():
     if not hora_egreso:
         hora_egreso = datetime.now().strftime("%H:%M")
 
-    # Obtener CI del ingreso
+    # Obtener CI y fecha ingreso
     cursor.execute("SELECT ci, fecha_ingreso FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
     ci, fecha_ingreso = cursor.fetchone()
 
@@ -72,7 +75,9 @@ def registrar_egreso():
     finally:
         conn.close()
 
-
+# ==========================
+# Listar egresos
+# ==========================
 def listar_egresos():
     conn = conectar()
     cursor = conn.cursor()
@@ -93,14 +98,82 @@ def listar_egresos():
     for e in egresos:
         print(f"ID: {e[0]} | Paciente: {e[1]} | Fecha: {e[2]} {e[3]} | Estancia: {e[4]} días | Estado: {e[5]}")
 
+# ==========================
+# Actualizar egreso
+# ==========================
+def actualizar_egreso():
+    listar_egresos()
+    id_egreso = input("\nIngrese el ID del egreso a modificar: ").strip()
 
+    conn = conectar()
+    cursor = conn.cursor()
+
+    # Verificar si existe
+    cursor.execute("SELECT id_egreso FROM Egreso WHERE id_egreso = ?", (id_egreso,))
+    if not cursor.fetchone():
+        print("⚠️ No se encontró el egreso con ese ID.")
+        conn.close()
+        return
+
+    fecha_egreso = input("Nueva fecha de egreso (YYYY-MM-DD, ENTER para no cambiar): ").strip()
+    hora_egreso = input("Nueva hora de egreso (HH:MM, ENTER para no cambiar): ").strip()
+    estado_egreso = input("Nuevo estado de egreso (Recuperado, Trasladado, Fallecido, ENTER para no cambiar): ").strip()
+
+    # Obtener datos actuales si el usuario no quiere cambiar
+    cursor.execute("SELECT fecha_egreso, hora_egreso, estado_egreso FROM Egreso WHERE id_egreso = ?", (id_egreso,))
+    fecha_actual, hora_actual, estado_actual = cursor.fetchone()
+
+    try:
+        cursor.execute("""
+            UPDATE Egreso
+            SET fecha_egreso = ?, hora_egreso = ?, estado_egreso = ?
+            WHERE id_egreso = ?
+        """, (
+            fecha_egreso if fecha_egreso else fecha_actual,
+            hora_egreso if hora_egreso else hora_actual,
+            estado_egreso if estado_egreso else estado_actual,
+            id_egreso
+        ))
+        conn.commit()
+        print("✅ Egreso actualizado con éxito.")
+    except Exception as e:
+        print("⚠️ Ocurrió un error:", e)
+    finally:
+        conn.close()
+
+# ==========================
+# Eliminar egreso
+# ==========================
+def eliminar_egreso():
+    listar_egresos()
+    id_egreso = input("\nIngrese el ID del egreso a eliminar: ").strip()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("DELETE FROM Egreso WHERE id_egreso = ?", (id_egreso,))
+        if cursor.rowcount == 0:
+            print("⚠️ No se encontró el egreso con ese ID.")
+        else:
+            conn.commit()
+            print("✅ Egreso eliminado con éxito.")
+    except Exception as e:
+        print("⚠️ Ocurrió un error:", e)
+    finally:
+        conn.close()
+
+# ==========================
 # Menú del módulo
+# ==========================
 def menu_egresos():
     while True:
         print("\n--- MÓDULO EGRESOS ---")
         print("1. Registrar egreso")
         print("2. Listar egresos")
-        print("3. Salir")
+        print("3. Actualizar egreso")
+        print("4. Eliminar egreso")
+        print("0. Volver")
 
         opcion = input("Seleccione una opción: ").strip()
 
@@ -109,10 +182,16 @@ def menu_egresos():
         elif opcion == "2":
             listar_egresos()
         elif opcion == "3":
+            actualizar_egreso()
+        elif opcion == "4":
+            eliminar_egreso()
+        elif opcion == "0":
             break
         else:
             print("❌ Opción inválida.")
 
-
+# ==========================
+# Ejecutar módulo directamente
+# ==========================
 if __name__ == "__main__":
     menu_egresos()
