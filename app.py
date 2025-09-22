@@ -10,6 +10,7 @@ from modules.pacientes import menu_pacientes
 from modules.usuarios import menu_usuarios
 from modules.ingresos import menu_ingresos
 from modules.egresos import menu_egresos
+from modules.reportes import consultas as menu_reportes
 
 
 DB_PATH = "database/emergencias.db"
@@ -54,6 +55,7 @@ def menu_principal(user):
         print("3. Gestión de Usuarios")
         print("4. Gestión de Ingresos")
         print("5. Gestión de Egresos")
+        print("6. Consultas y Reportes")
         print("0. Salir")
 
         opcion = input("Seleccione una opción: ").strip()
@@ -68,6 +70,8 @@ def menu_principal(user):
             menu_ingresos()
         elif opcion == "5":
             menu_egresos()
+        elif opcion == "6":
+            menu_reportes()
         elif opcion == "0":
             print("👋 Saliendo del sistema...")
             break
