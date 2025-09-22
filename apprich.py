@@ -7,6 +7,7 @@ import sqlite3
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
+from rich.table import Table
 from getpass import getpass
 
 DB_PATH = "database/emergencias.db"
@@ -39,6 +40,20 @@ def login():
     else:
         console.print("❌ Usuario o contraseña incorrectos.", style="bold red")
         return None
+
+# ==========================
+# Función para mostrar listas con Rich Table
+# ==========================
+def mostrar_tabla(titulo, columnas, filas):
+    if not filas:
+        console.print(f"⚠️ No hay {titulo.lower()}.", style="bold red")
+        return
+    table = Table(title=titulo, style="cyan")
+    for col in columnas:
+        table.add_column(col, justify="center")
+    for fila in filas:
+        table.add_row(*[str(f) if f is not None else "N/A" for f in fila])
+    console.print(table)
 
 # ==========================
 # Menú principal
