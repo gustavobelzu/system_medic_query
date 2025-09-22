@@ -1,15 +1,19 @@
 import sys
 import os
+import sqlite3 
 
+# Agregar la carpeta src al path
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 # ==========================
 # Ajustar path para importar modules
 # ==========================
-sys.path.append(os.path.dirname(__file__))
 from modules.estados import menu_estados
 from modules.pacientes import menu_pacientes
 from modules.usuarios import menu_usuarios
 from modules.ingresos import menu_ingresos
 from modules.egresos import menu_egresos
+from modules.reportes import consultas as menu_reportes
+from modules.consultas import consultas as menu_consultas
 
 import sqlite3
 from getpass import getpass
@@ -59,7 +63,7 @@ def menu_principal(user):
         ("3", "Gestión de Usuarios", menu_usuarios),
         ("4", "Gestión de Ingresos", menu_ingresos),
         ("5", "Gestión de Egresos", menu_egresos),
-        ("6", "Operaciones (Modificar/Eliminar)", menu_operaciones),
+        ("6", "Consultas y Reportes", menu_consultas),
         ("0", "Salir", None)
     ]
 
