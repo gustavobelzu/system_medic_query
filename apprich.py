@@ -10,6 +10,7 @@ from modules.pacientes import menu_pacientes
 from modules.usuarios import menu_usuarios
 from modules.ingresos import menu_ingresos
 from modules.egresos import menu_egresos
+from modules.reportes import consultas as menu_reportes
 import sqlite3
 from rich.console import Console
 from rich.panel import Panel
@@ -74,6 +75,7 @@ def menu_principal(user):
         console.print("[cyan]3.[/cyan] Gestión de Usuarios")
         console.print("[cyan]4.[/cyan] Gestión de Ingresos")
         console.print("[cyan]5.[/cyan] Gestión de Egresos")
+        console.print("[cyan]6.[/cyan] Consultas y Reportes")
         console.print("[cyan]0.[/cyan] Salir")
 
         opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4","5"])
@@ -88,6 +90,8 @@ def menu_principal(user):
             menu_ingresos()
         elif opcion == "5":
             menu_egresos()
+        elif opcion == "6":
+            menu_reportes()
         elif opcion == "0":
             console.print("👋 Saliendo del sistema...", style="bold yellow")
             break
