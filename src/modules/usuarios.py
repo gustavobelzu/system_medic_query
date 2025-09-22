@@ -1,6 +1,10 @@
 import sqlite3
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.table import Table
 
 DB_PATH = "database/emergencias.db"
+console = Console()
 
 def conectar():
     return sqlite3.connect(DB_PATH)
@@ -12,34 +16,24 @@ def registrar_usuario():
     conn = conectar()
     cursor = conn.cursor()
 
-    print("\n=== Registro de Usuario ===")
-
-    username = input("Nombre de usuario (login): ").strip()
-    password = input("Contraseña: ").strip()
-    nombre = input("Nombre completo: ").strip()
-    cargo = input("Cargo (Médico, Enfermera, Administrativo): ").strip()
-    especialidad = input("Especialidad (si aplica, caso contrario dejar vacío): ").strip()
+    console.print("\n=== Registro de Usuario ===", style="bold cyan")
+    username = Prompt.ask("Nombre de usuario (login)").strip()
+    password = Prompt.ask("Contraseña").strip()
+    nombre = Prompt.ask("Nombre completo").strip()
+    cargo = Prompt.ask("Cargo (Médico, Enfermera, Administrativo)").strip()
+    especialidad = Prompt.ask("Especialidad (si aplica, caso contrario dejar vacío)").strip()
 
     try:
-        # Insertar en Usuario
-        cursor.execute("""
-            INSERT INTO Usuario (username, password) 
-            VALUES (?, ?)
-        """, (username, password))
+        cursor.execute("INSERT INTO Usuario (username, password) VALUES (?, ?)", (username, password))
         id_usuario = cursor.lastrowid
-
-        # Insertar en Personal
-        cursor.execute("""
-            INSERT INTO Personal (id_usuario, nombre, cargo, especialidad)
-            VALUES (?, ?, ?, ?)
-        """, (id_usuario, nombre, cargo, especialidad if especialidad else None))
-
+        cursor.execute("INSERT INTO Personal (id_usuario, nombre, cargo, especialidad) VALUES (?, ?, ?, ?)",
+                       (id_usuario, nombre, cargo, especialidad if especialidad else None))
         conn.commit()
-        print("✅ Usuario registrado con éxito.")
+        console.print("✅ Usuario registrado con éxito.", style="green")
     except sqlite3.IntegrityError:
-        print("❌ Error: Ese nombre de usuario ya existe.")
+        console.print("❌ Error: Ese nombre de usuario ya existe.", style="red")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -49,72 +43,51 @@ def registrar_usuario():
 def listar_usuarios():
     conn = conectar()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT u.id_usuario, u.username, p.nombre, p.cargo, p.especialidad
-        FROM Usuario u
-        JOIN Personal p ON u.id_usuario = p.id_usuario
-    """)
+    cursor.execute("SELECT u.username, p.nombre, p.cargo, p.especialidad FROM Usuario u JOIN Personal p ON u.id_usuario = p.id_usuario")
     usuarios = cursor.fetchall()
     conn.close()
 
     if not usuarios:
-        print("⚠️ No hay usuarios registrados.")
+        console.print("⚠️ No hay usuarios registrados.", style="red")
         return
-    
-    print("\n=== Lista de Usuarios ===")
+
+    table = Table(title="Lista de Usuarios")
+    table.add_column("Usuario")
+    table.add_column("Nombre")
+    table.add_column("Cargo")
+    table.add_column("Especialidad")
     for u in usuarios:
-        print(f"ID: {u[0]}, Usuario: {u[1]}, Nombre: {u[2]}, Cargo: {u[3]}, Especialidad: {u[4] if u[4] else 'N/A'}")
+        table.add_row(u[0], u[1], u[2], u[3] if u[3] else "N/A")
+    console.print(table)
 
 # ==========================
 # Actualizar usuario
 # ==========================
 def actualizar_usuario():
     listar_usuarios()
-    id_usuario = input("\nIngrese el ID del usuario a modificar: ").strip()
-
+    username = Prompt.ask("Ingrese el nombre de usuario a modificar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT u.username, u.password, p.nombre, p.cargo, p.especialidad
-        FROM Usuario u
-        JOIN Personal p ON u.id_usuario = p.id_usuario
-        WHERE u.id_usuario = ?
-    """, (id_usuario,))
-    usuario = cursor.fetchone()
-
-    if not usuario:
-        print("⚠️ No se encontró el usuario con ese ID.")
+    cursor.execute("SELECT u.id_usuario, p.nombre, p.cargo, p.especialidad FROM Usuario u JOIN Personal p ON u.id_usuario = p.id_usuario WHERE u.username = ?", (username,))
+    user = cursor.fetchone()
+    if not user:
+        console.print("⚠️ No se encontró el usuario.", style="red")
         conn.close()
         return
 
-    username_actual, password_actual, nombre_actual, cargo_actual, especialidad_actual = usuario
-
-    username = input(f"Nuevo usuario (ENTER para {username_actual}): ").strip() or username_actual
-    password = input(f"Nueva contraseña (ENTER para mantener): ").strip() or password_actual
-    nombre = input(f"Nuevo nombre (ENTER para {nombre_actual}): ").strip() or nombre_actual
-    cargo = input(f"Nuevo cargo (ENTER para {cargo_actual}): ").strip() or cargo_actual
-    especialidad = input(f"Nueva especialidad (ENTER para {especialidad_actual if especialidad_actual else 'N/A'}): ").strip() or especialidad_actual
+    nuevo_username = Prompt.ask(f"Nuevo usuario (ENTER para {username})").strip() or username
+    nombre = Prompt.ask(f"Nombre completo (ENTER para {user[1]})").strip() or user[1]
+    cargo = Prompt.ask(f"Cargo (ENTER para {user[2]})").strip() or user[2]
+    especialidad = Prompt.ask(f"Especialidad (ENTER para {user[3] if user[3] else 'N/A'})").strip() or user[3]
 
     try:
-        cursor.execute("""
-            UPDATE Usuario
-            SET username = ?, password = ?
-            WHERE id_usuario = ?
-        """, (username, password, id_usuario))
-
-        cursor.execute("""
-            UPDATE Personal
-            SET nombre = ?, cargo = ?, especialidad = ?
-            WHERE id_usuario = ?
-        """, (nombre, cargo, especialidad if especialidad else None, id_usuario))
-
+        cursor.execute("UPDATE Usuario SET username = ? WHERE id_usuario = ?", (nuevo_username, user[0]))
+        cursor.execute("UPDATE Personal SET nombre = ?, cargo = ?, especialidad = ? WHERE id_usuario = ?",
+                       (nombre, cargo, especialidad, user[0]))
         conn.commit()
-        print("✅ Usuario actualizado con éxito.")
-    except sqlite3.IntegrityError:
-        print("❌ Error: El nombre de usuario ya existe.")
+        console.print("✅ Usuario actualizado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -123,24 +96,22 @@ def actualizar_usuario():
 # ==========================
 def eliminar_usuario():
     listar_usuarios()
-    id_usuario = input("\nIngrese el ID del usuario a eliminar: ").strip()
-
+    username = Prompt.ask("Ingrese el nombre de usuario a eliminar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
     try:
-        # Eliminar de Personal primero (por FK)
-        cursor.execute("DELETE FROM Personal WHERE id_usuario = ?", (id_usuario,))
-        # Luego eliminar de Usuario
-        cursor.execute("DELETE FROM Usuario WHERE id_usuario = ?", (id_usuario,))
-
-        if cursor.rowcount == 0:
-            print("⚠️ No se encontró el usuario con ese ID.")
-        else:
-            conn.commit()
-            print("✅ Usuario eliminado con éxito.")
+        cursor.execute("SELECT id_usuario FROM Usuario WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        if not user:
+            console.print("⚠️ No se encontró el usuario.", style="red")
+            conn.close()
+            return
+        cursor.execute("DELETE FROM Personal WHERE id_usuario = ?", (user[0],))
+        cursor.execute("DELETE FROM Usuario WHERE id_usuario = ?", (user[0],))
+        conn.commit()
+        console.print("✅ Usuario eliminado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -149,15 +120,13 @@ def eliminar_usuario():
 # ==========================
 def menu_usuarios():
     while True:
-        print("\n--- MÓDULO USUARIOS ---")
-        print("1. Registrar usuario")
-        print("2. Listar usuarios")
-        print("3. Actualizar usuario")
-        print("4. Eliminar usuario")
-        print("0. Volver")
-
-        opcion = input("Seleccione una opción: ").strip()
-
+        console.print("\n--- MÓDULO USUARIOS ---", style="bold magenta")
+        console.print("1. Registrar usuario")
+        console.print("2. Listar usuarios")
+        console.print("3. Actualizar usuario")
+        console.print("4. Eliminar usuario")
+        console.print("0. Volver")
+        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4"])
         if opcion == "1":
             registrar_usuario()
         elif opcion == "2":
@@ -168,11 +137,7 @@ def menu_usuarios():
             eliminar_usuario()
         elif opcion == "0":
             break
-        else:
-            print("❌ Opción inválida.")
 
-# ==========================
-# Ejecutar módulo directamente
-# ==========================
 if __name__ == "__main__":
     menu_usuarios()
+

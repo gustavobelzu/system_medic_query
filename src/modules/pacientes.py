@@ -1,6 +1,10 @@
 import sqlite3
+from rich.console import Console
+from rich.prompt import Prompt
+from rich.table import Table
 
 DB_PATH = "database/emergencias.db"
+console = Console()
 
 def conectar():
     return sqlite3.connect(DB_PATH)
@@ -12,41 +16,38 @@ def registrar_paciente():
     conn = conectar()
     cursor = conn.cursor()
 
-    print("\n=== Registro de Paciente ===")
-
-    ci = input("CI: ").strip()
-    nombre = input("Nombre completo: ").strip()
-    edad = input("Edad: ").strip()
-    sexo = input("Sexo (M/F): ").strip().upper()
-    departamento = input("Departamento: ").strip()
-    telefono = input("Teléfono: ").strip()
+    console.print("\n=== Registro de Paciente ===", style="bold cyan")
+    ci = Prompt.ask("CI").strip()
+    nombre = Prompt.ask("Nombre completo").strip()
+    edad = Prompt.ask("Edad").strip()
+    sexo = Prompt.ask("Sexo (M/F)").strip().upper()
+    departamento = Prompt.ask("Departamento").strip()
+    telefono = Prompt.ask("Teléfono").strip()
 
     # Mostrar estados disponibles
-    cursor.execute("SELECT * FROM Estado")
+    cursor.execute("SELECT id_estado, estado FROM Estado")
     estados = cursor.fetchall()
     if not estados:
-        print("⚠️ No hay estados registrados, agregue al menos uno en la tabla Estado.")
+        console.print("⚠️ No hay estados registrados.", style="red")
         conn.close()
         return
-    
-    print("\nEstados disponibles:")
-    for e in estados:
-        print(f"{e[0]} - {e[1]} ({e[2] if e[2] else 'Sin condición especial'})")
 
-    id_estado = input("Seleccione el id_estado: ").strip()
+    console.print("\nEstados disponibles:")
+    for e in estados:
+        console.print(f"{e[0]} - {e[1]}")
+    id_estado = Prompt.ask("Seleccione el ID del estado").strip()
 
     try:
         cursor.execute("""
             INSERT INTO Paciente (ci, nombre, edad, sexo, departamento, telefono, id_estado)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (ci, nombre, edad, sexo, departamento, telefono, id_estado))
-
         conn.commit()
-        print("✅ Paciente registrado con éxito.")
+        console.print("✅ Paciente registrado con éxito.", style="green")
     except sqlite3.IntegrityError:
-        print("❌ Error: Ya existe un paciente con ese CI.")
+        console.print("❌ Error: Ya existe un paciente con ese CI.", style="red")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -65,46 +66,51 @@ def listar_pacientes():
     conn.close()
 
     if not pacientes:
-        print("⚠️ No hay pacientes registrados.")
+        console.print("⚠️ No hay pacientes registrados.", style="red")
         return
     
-    print("\n=== Lista de Pacientes ===")
+    table = Table(title="Lista de Pacientes")
+    table.add_column("CI", justify="center")
+    table.add_column("Nombre")
+    table.add_column("Edad", justify="center")
+    table.add_column("Sexo", justify="center")
+    table.add_column("Depto")
+    table.add_column("Teléfono")
+    table.add_column("Estado")
     for p in pacientes:
-        print(f"CI: {p[0]}, Nombre: {p[1]}, Edad: {p[2]}, Sexo: {p[3]}, "
-              f"Depto: {p[4]}, Tel: {p[5]}, Estado: {p[6]}")
+        table.add_row(str(p[0]), p[1], str(p[2]), p[3], p[4], str(p[5]), p[6] if p[6] else "N/A")
+    console.print(table)
 
 # ==========================
 # Actualizar paciente
 # ==========================
 def actualizar_paciente():
     listar_pacientes()
-    ci = input("\nIngrese el CI del paciente a modificar: ").strip()
-
+    ci = Prompt.ask("Ingrese el CI del paciente a modificar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
-    cursor.execute("SELECT nombre, edad, sexo, departamento, telefono, id_estado FROM Paciente WHERE ci = ?", (ci,))
+    cursor.execute("""
+        SELECT nombre, edad, sexo, departamento, telefono, id_estado
+        FROM Paciente WHERE ci = ?
+    """, (ci,))
     paciente = cursor.fetchone()
     if not paciente:
-        print("⚠️ No se encontró el paciente con ese CI.")
+        console.print("⚠️ No se encontró el paciente.", style="red")
         conn.close()
         return
 
-    nombre_actual, edad_actual, sexo_actual, depto_actual, tel_actual, id_estado_actual = paciente
+    nombre = Prompt.ask(f"Nombre (ENTER para {paciente[0]})").strip() or paciente[0]
+    edad = Prompt.ask(f"Edad (ENTER para {paciente[1]})").strip() or paciente[1]
+    sexo = Prompt.ask(f"Sexo (M/F) (ENTER para {paciente[2]})").strip().upper() or paciente[2]
+    departamento = Prompt.ask(f"Departamento (ENTER para {paciente[3]})").strip() or paciente[3]
+    telefono = Prompt.ask(f"Teléfono (ENTER para {paciente[4]})").strip() or paciente[4]
 
-    nombre = input(f"Nuevo nombre (ENTER para {nombre_actual}): ").strip() or nombre_actual
-    edad = input(f"Nueva edad (ENTER para {edad_actual}): ").strip() or edad_actual
-    sexo = input(f"Nuevo sexo (M/F, ENTER para {sexo_actual}): ").strip().upper() or sexo_actual
-    departamento = input(f"Nuevo departamento (ENTER para {depto_actual}): ").strip() or depto_actual
-    telefono = input(f"Nuevo teléfono (ENTER para {tel_actual}): ").strip() or tel_actual
-
-    # Mostrar estados disponibles
-    cursor.execute("SELECT * FROM Estado")
+    # Mostrar estados
+    cursor.execute("SELECT id_estado, estado FROM Estado")
     estados = cursor.fetchall()
-    print("\nEstados disponibles:")
     for e in estados:
-        print(f"{e[0]} - {e[1]} ({e[2] if e[2] else 'Sin condición especial'})")
-    id_estado = input(f"Nuevo id_estado (ENTER para {id_estado_actual}): ").strip() or id_estado_actual
+        console.print(f"{e[0]} - {e[1]}")
+    id_estado = Prompt.ask(f"ID Estado (ENTER para {paciente[5]})").strip() or paciente[5]
 
     try:
         cursor.execute("""
@@ -113,9 +119,9 @@ def actualizar_paciente():
             WHERE ci = ?
         """, (nombre, edad, sexo, departamento, telefono, id_estado, ci))
         conn.commit()
-        print("✅ Paciente actualizado con éxito.")
+        console.print("✅ Paciente actualizado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -124,20 +130,18 @@ def actualizar_paciente():
 # ==========================
 def eliminar_paciente():
     listar_pacientes()
-    ci = input("\nIngrese el CI del paciente a eliminar: ").strip()
-
+    ci = Prompt.ask("Ingrese el CI del paciente a eliminar").strip()
     conn = conectar()
     cursor = conn.cursor()
-
     try:
         cursor.execute("DELETE FROM Paciente WHERE ci = ?", (ci,))
         if cursor.rowcount == 0:
-            print("⚠️ No se encontró el paciente con ese CI.")
+            console.print("⚠️ No se encontró el paciente.", style="red")
         else:
             conn.commit()
-            print("✅ Paciente eliminado con éxito.")
+            console.print("✅ Paciente eliminado con éxito.", style="green")
     except Exception as e:
-        print("⚠️ Ocurrió un error:", e)
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
 
@@ -146,15 +150,13 @@ def eliminar_paciente():
 # ==========================
 def menu_pacientes():
     while True:
-        print("\n--- MÓDULO PACIENTES ---")
-        print("1. Registrar paciente")
-        print("2. Listar pacientes")
-        print("3. Actualizar paciente")
-        print("4. Eliminar paciente")
-        print("0. Volver")
-
-        opcion = input("Seleccione una opción: ").strip()
-
+        console.print("\n--- MÓDULO PACIENTES ---", style="bold magenta")
+        console.print("1. Registrar paciente")
+        console.print("2. Listar pacientes")
+        console.print("3. Actualizar paciente")
+        console.print("4. Eliminar paciente")
+        console.print("0. Volver")
+        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4"])
         if opcion == "1":
             registrar_paciente()
         elif opcion == "2":
@@ -165,11 +167,7 @@ def menu_pacientes():
             eliminar_paciente()
         elif opcion == "0":
             break
-        else:
-            print("❌ Opción inválida.")
 
-# ==========================
-# Ejecutar módulo directamente
-# ==========================
 if __name__ == "__main__":
     menu_pacientes()
+
