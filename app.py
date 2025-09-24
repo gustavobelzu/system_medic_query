@@ -11,7 +11,7 @@ from modules.usuarios import menu_usuarios
 from modules.ingresos import menu_ingresos
 from modules.egresos import menu_egresos
 from modules.reportes import consultas as menu_reportes
-
+from modules.consultas import consultas as menu_consultas
 
 DB_PATH = "database/emergencias.db"
 
@@ -71,7 +71,7 @@ def menu_principal(user):
         elif opcion == "5":
             menu_egresos()
         elif opcion == "6":
-            menu_reportes()
+           menu_consultas(usuario)
         elif opcion == "0":
             print("👋 Saliendo del sistema...")
             break
