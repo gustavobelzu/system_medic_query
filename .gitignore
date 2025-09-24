@@ -1,0 +1,11 @@
+# Archivos consola edicion temprana
+app.py
+
+# Archivos consola edicion temprana con rich
+apprich.py
+
+
+# Archivos para insertar datos en lae base de datos
+insertar.py
+
+
