@@ -63,7 +63,7 @@ def menu_principal(user):
         ("3", "Gestión de Usuarios", menu_usuarios),
         ("4", "Gestión de Ingresos", menu_ingresos),
         ("5", "Gestión de Egresos", menu_egresos),
-        ("6", "Consultas y Reportes", menu_consultas),
+        ("6", "Reportes", menu_consultas),
         ("0", "Salir", None)
     ]
 
@@ -101,7 +101,7 @@ def menu_principal(user):
                     func()
                     break
 
-        console.print("\nPresione Enter para volver al dashboard...")
+        console.print("\nPresione Enter para volver al panel de control...")
         input()
 
 # ==========================
