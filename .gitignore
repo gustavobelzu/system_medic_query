@@ -13,3 +13,6 @@ src/modules/operaciones.py
 
 #Consultas
 src/modules/consultas.py
+
+#Reportes1
+src/modules/reportes1.py
