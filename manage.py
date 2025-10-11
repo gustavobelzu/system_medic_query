@@ -1,6 +1,13 @@
 import sys
 import os
 import sqlite3 
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from pyfiglet import Figlet  # Necesitamos instalar pyfiglet: pip install pyfiglet
+from getpass import getpass
+from rich.prompt import Prompt
+from rich.table import Table
 
 # Agregar la carpeta src al path
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
@@ -15,12 +22,6 @@ from modules.egresos import menu_egresos
 from modules.reportes import menu_reportes as menu_reportes
 from modules.consultas import consultas as menu_consultas
 
-import sqlite3
-from getpass import getpass
-from rich.console import Console
-from rich.panel import Panel
-from rich.prompt import Prompt
-from rich.table import Table
 
 DB_PATH = "database/emergencias.db"
 console = Console()
@@ -56,7 +57,14 @@ def login():
 # ==========================
 # Dashboard estilo grid (2 filas x 3 columnas)
 # ==========================
+def mostrar_titulo_clinica():
+    f = Figlet(font="slant")
+    console.print(f.renderText("CLINICA LA FUENTE"), style="bold blue")
+
+
 def menu_principal(user):
+    if __name__ == "__main__":
+        mostrar_titulo_clinica()
     opciones = [
         ("1", "Gestión de Estados", menu_estados),
         ("2", "Gestión de Pacientes", menu_pacientes),
@@ -69,6 +77,7 @@ def menu_principal(user):
 
     while True:
         console.clear()
+        mostrar_titulo_clinica()  # Aquí se muestra siempre
         console.print(Panel(f"SISTEMA DE CONTROL DE EMERGENCIAS\n[bold]Usuario conectado:[/bold] {user[1]} ({user[2]})", style="magenta"))
 
         # Grid de 2 filas x 3 columnas
@@ -106,8 +115,8 @@ def menu_principal(user):
                     break
 
 
-        #console.print("\nPresione Enter para volver al panel de control...")
-        #input()
+        console.print("\nPresione Enter para volver al panel de control...")
+        input()
 
 # ==========================
 # Inicio del programa
