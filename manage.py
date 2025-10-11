@@ -12,7 +12,7 @@ from modules.pacientes import menu_pacientes
 from modules.usuarios import menu_usuarios
 from modules.ingresos import menu_ingresos
 from modules.egresos import menu_egresos
-from modules.reportes import consultas as menu_reportes
+from modules.reportes import menu_reportes as menu_reportes
 from modules.consultas import consultas as menu_consultas
 
 import sqlite3
