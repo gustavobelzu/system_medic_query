@@ -63,7 +63,7 @@ def menu_principal(user):
         ("3", "Gestión de Usuarios", menu_usuarios),
         ("4", "Gestión de Ingresos", menu_ingresos),
         ("5", "Gestión de Egresos", menu_egresos),
-        ("6", "Reportes", menu_consultas),
+        ("6", "Reportes", menu_reportes),
         ("0", "Salir", None)
     ]
 
