@@ -43,8 +43,12 @@ def listar_pacientes():
 # ==========================
 # Registrar paciente
 # ==========================
+# ==========================
+# Registrar paciente (ID estado obligatorio)
+# ==========================
 def registrar_paciente():
-    console.print("\n=== Registro de Paciente ===", style="bold cyan")    
+    console.print("\n=== Registro de Paciente ===", style="bold cyan")
+    
     pacientes_existentes = listar_pacientes()
     console.print("Escriba 'c' para cancelar el registro en cualquier momento.", style="yellow")
 
@@ -92,15 +96,21 @@ def registrar_paciente():
         conn.close()
         return
 
-    console.print("\nEstados disponibles:")
-    for e in estados:
-        console.print(f"{e[0]} - {e[1]}")
-    
-    id_estado = Prompt.ask("Seleccione el ID del estado").strip()
-    if id_estado.lower() == "c":
-        console.print("🔙 Registro cancelado.", style="yellow")
-        conn.close()
-        return
+    # Validación del ID de estado
+    ids_estados = [str(e[0]) for e in estados]
+    while True:
+        console.print("\nEstados disponibles:")
+        for e in estados:
+            console.print(f"{e[0]} - {e[1]}")
+        id_estado = Prompt.ask("Seleccione el ID del estado (obligatorio)").strip()
+        if id_estado.lower() == "c":
+            console.print("🔙 Registro cancelado.", style="yellow")
+            conn.close()
+            return
+        if id_estado in ids_estados:
+            break
+        else:
+            console.print("❌ ID inválido. Debe seleccionar un ID existente.", style="red")
 
     try:
         cursor.execute("""
@@ -114,8 +124,9 @@ def registrar_paciente():
     finally:
         conn.close()
 
+
 # ==========================
-# Actualizar paciente
+# Actualizar paciente (ID estado obligatorio)
 # ==========================
 def actualizar_paciente():
     pacientes_existentes = listar_pacientes()
@@ -140,46 +151,29 @@ def actualizar_paciente():
     paciente = cursor.fetchone()
 
     nombre = Prompt.ask(f"Nombre (ENTER para {paciente[0]})").strip() or paciente[0]
-    if nombre.lower() == "c":
-        console.print("🔙 Actualización cancelada.", style="yellow")
-        conn.close()
-        return
-
     edad = Prompt.ask(f"Edad (ENTER para {paciente[1]})").strip() or paciente[1]
-    if str(edad).lower() == "c":
-        console.print("🔙 Actualización cancelada.", style="yellow")
-        conn.close()
-        return
-
     sexo = Prompt.ask(f"Sexo (M/F) (ENTER para {paciente[2]})").strip().upper() or paciente[2]
-    if sexo.lower() == "c":
-        console.print("🔙 Actualización cancelada.", style="yellow")
-        conn.close()
-        return
-
     departamento = Prompt.ask(f"Departamento (ENTER para {paciente[3]})").strip() or paciente[3]
-    if departamento.lower() == "c":
-        console.print("🔙 Actualización cancelada.", style="yellow")
-        conn.close()
-        return
-
     telefono = Prompt.ask(f"Teléfono (ENTER para {paciente[4]})").strip() or paciente[4]
-    if telefono.lower() == "c":
-        console.print("🔙 Actualización cancelada.", style="yellow")
-        conn.close()
-        return
 
     # Estados
     cursor.execute("SELECT id_estado, estado FROM Estado")
     estados = cursor.fetchall()
-    console.print("\nEstados disponibles:")
-    for e in estados:
-        console.print(f"{e[0]} - {e[1]}")
-    id_estado = Prompt.ask(f"ID Estado (ENTER para {paciente[5]})").strip() or paciente[5]
-    if str(id_estado).lower() == "c":
-        console.print("🔙 Actualización cancelada.", style="yellow")
-        conn.close()
-        return
+    ids_estados = [str(e[0]) for e in estados]
+    
+    while True:
+        console.print("\nEstados disponibles:")
+        for e in estados:
+            console.print(f"{e[0]} - {e[1]}")
+        id_estado = Prompt.ask(f"ID Estado (ENTER para {paciente[5]})").strip() or str(paciente[5])
+        if id_estado.lower() == "c":
+            console.print("🔙 Actualización cancelada.", style="yellow")
+            conn.close()
+            return
+        if id_estado in ids_estados:
+            break
+        else:
+            console.print("❌ ID inválido. Debe seleccionar un ID existente.", style="red")
 
     try:
         cursor.execute("""
@@ -193,6 +187,7 @@ def actualizar_paciente():
         console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
+
 
 # ==========================
 # Eliminar paciente
