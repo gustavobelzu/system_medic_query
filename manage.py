@@ -98,8 +98,13 @@ def menu_principal(user):
         else:
             for key, _, func in opciones:
                 if key == opcion and func:
-                    func()
+                # Pasar el usuario al módulo si acepta argumento
+                    try:
+                        func(user)
+                    except TypeError:
+                        func()
                     break
+
 
         console.print("\nPresione Enter para volver al panel de control...")
         input()
