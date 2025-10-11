@@ -9,4 +9,7 @@ apprich.py
 insertar.py
 
 # Archivos para insertar datos en lae base de datos
-operaciones.py
+src/modules/operaciones.py
+
+#Consultas
+src/modules/consultas.py
