@@ -132,7 +132,7 @@ def eliminar_ingreso():
 # ==========================
 # Menú del módulo
 # ==========================
-def menu_ingresos():
+def menu_ingresos(usuario=None):
     while True:
         console.print("\n--- MÓDULO INGRESOS ---", style="bold magenta")
         console.print("1. Registrar ingreso")

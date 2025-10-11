@@ -17,11 +17,56 @@ def registrar_usuario():
     cursor = conn.cursor()
 
     console.print("\n=== Registro de Usuario ===", style="bold cyan")
-    username = Prompt.ask("Nombre de usuario (login)").strip()
-    password = Prompt.ask("Contraseña").strip()
+    console.print("Escriba 'c' en cualquier momento para cancelar.", style="yellow")
+
+    while True:
+        username = Prompt.ask("Nombre de usuario (login)").strip()
+        if username.lower() == "c":
+            console.print("🔙 Registro cancelado.", style="yellow")
+            conn.close()
+            return
+
+        # Verificar si ya existe
+        cursor.execute("SELECT 1 FROM Usuario WHERE username = ?", (username,))
+        if cursor.fetchone():
+            console.print("❌ Ese nombre de usuario ya existe.", style="red")
+        else:
+            break
+
+    # Contraseña doble
+    while True:
+        password = Prompt.ask("Contraseña").strip()
+        if password.lower() == "c":
+            console.print("🔙 Registro cancelado.", style="yellow")
+            conn.close()
+            return
+        password2 = Prompt.ask("Repita la contraseña").strip()
+        if password2.lower() == "c":
+            console.print("🔙 Registro cancelado.", style="yellow")
+            conn.close()
+            return
+        if password != password2:
+            console.print("❌ Las contraseñas no coinciden. Intente nuevamente.", style="red")
+        else:
+            break
+
     nombre = Prompt.ask("Nombre completo").strip()
+    if nombre.lower() == "c":
+        console.print("🔙 Registro cancelado.", style="yellow")
+        conn.close()
+        return
+
     cargo = Prompt.ask("Cargo (Médico, Enfermera, Administrativo)").strip()
+    if cargo.lower() == "c":
+        console.print("🔙 Registro cancelado.", style="yellow")
+        conn.close()
+        return
+
     especialidad = Prompt.ask("Especialidad (si aplica, caso contrario dejar vacío)").strip()
+    if especialidad.lower() == "c":
+        console.print("🔙 Registro cancelado.", style="yellow")
+        conn.close()
+        return
 
     try:
         cursor.execute("INSERT INTO Usuario (username, password) VALUES (?, ?)", (username, password))
@@ -30,12 +75,11 @@ def registrar_usuario():
                        (id_usuario, nombre, cargo, especialidad if especialidad else None))
         conn.commit()
         console.print("✅ Usuario registrado con éxito.", style="green")
-    except sqlite3.IntegrityError:
-        console.print("❌ Error: Ese nombre de usuario ya existe.", style="red")
     except Exception as e:
         console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
+
 
 # ==========================
 # Listar usuarios
@@ -65,13 +109,18 @@ def listar_usuarios():
 # ==========================
 def actualizar_usuario():
     listar_usuarios()
+    console.print("Escriba 'c' para cancelar la actualización.", style="yellow")
     username = Prompt.ask("Ingrese el nombre de usuario a modificar").strip()
+    if username.lower() == "c":
+        console.print("🔙 Actualización cancelada.", style="yellow")
+        return
+
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute("SELECT u.id_usuario, p.nombre, p.cargo, p.especialidad FROM Usuario u JOIN Personal p ON u.id_usuario = p.id_usuario WHERE u.username = ?", (username,))
     user = cursor.fetchone()
     if not user:
-        console.print("⚠️ No se encontró el usuario.", style="red")
+        console.print("❌ No se encontró el usuario.", style="red")
         conn.close()
         return
 
@@ -92,20 +141,32 @@ def actualizar_usuario():
         conn.close()
 
 # ==========================
-# Eliminar usuario
+# Eliminar usuario con doble confirmación
 # ==========================
 def eliminar_usuario():
     listar_usuarios()
+    console.print("Escriba 'c' para cancelar la eliminación.", style="yellow")
     username = Prompt.ask("Ingrese el nombre de usuario a eliminar").strip()
+    if username.lower() == "c":
+        console.print("🔙 Eliminación cancelada.", style="yellow")
+        return
+
     conn = conectar()
     cursor = conn.cursor()
+    cursor.execute("SELECT id_usuario FROM Usuario WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    if not user:
+        console.print("❌ No se encontró el usuario.", style="red")
+        conn.close()
+        return
+
+    confirm = Prompt.ask(f"¿Está seguro que desea eliminar el usuario '{username}'? (s/n)").strip().lower()
+    if confirm != "s":
+        console.print("🔙 Eliminación cancelada.", style="yellow")
+        conn.close()
+        return
+
     try:
-        cursor.execute("SELECT id_usuario FROM Usuario WHERE username = ?", (username,))
-        user = cursor.fetchone()
-        if not user:
-            console.print("⚠️ No se encontró el usuario.", style="red")
-            conn.close()
-            return
         cursor.execute("DELETE FROM Personal WHERE id_usuario = ?", (user[0],))
         cursor.execute("DELETE FROM Usuario WHERE id_usuario = ?", (user[0],))
         conn.commit()
@@ -118,7 +179,7 @@ def eliminar_usuario():
 # ==========================
 # Menú del módulo
 # ==========================
-def menu_usuarios():
+def menu_usuarios(usuario=None):
     while True:
         console.print("\n--- MÓDULO USUARIOS ---", style="bold magenta")
         console.print("1. Registrar usuario")

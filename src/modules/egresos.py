@@ -161,7 +161,7 @@ def eliminar_egreso():
 # ==========================
 # Menú del módulo
 # ==========================
-def menu_egresos():
+def menu_egresos(usuario=None):
     while True:
         console.print("\n--- MÓDULO EGRESOS ---", style="bold magenta")
         console.print("1. Registrar egreso")

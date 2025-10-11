@@ -141,7 +141,7 @@ def eliminar_estado():
 # ==========================
 # Menú del módulo
 # ==========================
-def menu_estados():
+def menu_estados(usuario=None):
     while True:
         console.print("\n--- MÓDULO ESTADOS ---", style="bold magenta")
         console.print("1. Registrar estado")

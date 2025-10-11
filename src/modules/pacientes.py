@@ -220,7 +220,7 @@ def eliminar_paciente():
 # ==========================
 # Menú del módulo
 # ==========================
-def menu_pacientes():
+def menu_pacientes(usuario=None):
     while True:
         console.print("\n--- MÓDULO PACIENTES ---", style="bold magenta")
         console.print("1. Registrar paciente")
