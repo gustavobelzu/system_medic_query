@@ -61,7 +61,6 @@ def exportar_pdf(df, usuario_nombre, filename=None, titulo="Reporte"):
 
     # Tabla de datos
     data = [df.columns.tolist()] + df.values.tolist()
-
     table = Table(data)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1976d2")),
@@ -117,7 +116,6 @@ def menu_reportes(usuario=None):
         console.print("\nTablas disponibles:")
         for i, t in enumerate(tablas, 1):
             console.print(f"{i}. {t}")
-
         console.print(f"{len(tablas)+1}. Volver al menú principal")
 
         opcion = Prompt.ask("Seleccione una tabla", choices=[str(i) for i in range(1, len(tablas)+2)])
@@ -133,12 +131,32 @@ def menu_reportes(usuario=None):
         console.print("\nCampos disponibles:", style="bold yellow")
         console.print(", ".join(columnas))
 
-        campos = Prompt.ask("Ingrese los campos separados por coma (o * para todos)").strip()
-        if campos == "*":
-            query = f"SELECT * FROM {tabla}"
-        else:
-            query = f"SELECT {campos} FROM {tabla}"
+        # Validación de columnas con opción a cancelar
+        while True:
+            campos = Prompt.ask("Ingrese los campos separados por coma (o * para todos, o 'c' para cancelar)").strip().lower()
+            
+            if campos == "c":
+                console.print("🔙 Cancelado. Volviendo al menú de tablas.", style="yellow")
+                query = None
+                break
+            elif campos == "*":
+                query = f"SELECT * FROM {tabla}"
+                break
+            else:
+                campos_list = [c.strip() for c in campos.split(",")]
+                invalidos = [c for c in campos_list if c not in columnas]
+                if invalidos:
+                    console.print(f"❌ Columnas inválidas: {', '.join(invalidos)}", style="bold red")
+                    console.print("Por favor ingrese solo columnas existentes.")
+                else:
+                    query = f"SELECT {', '.join(campos_list)} FROM {tabla}"
+                    break
 
+        # Si el usuario canceló, volver al menú de tablas
+        if query is None:
+            continue
+
+        # Ejecutar consulta
         try:
             df = pd.read_sql_query(query, conn)
             if df.empty:
@@ -147,11 +165,11 @@ def menu_reportes(usuario=None):
 
             mostrar_tabla(df, titulo=f"Reporte de {tabla}")
 
-            exportar = Prompt.ask("¿Exportar? (pdf/xlsx/n)", choices=["pdf", "xlsx", "n"])
+            exportar = Prompt.ask("¿Exportar?, ingrese una seleccion, (n) para cancelar (pdf/xlsx/n)", choices=["pdf", "xlsx", "n"])
             if exportar == "pdf":
-                exportar_pdf(df, nombre_usuario, f"{tabla}.pdf", f"Reporte de {tabla}")
+                exportar_pdf(df, nombre_usuario, f"{tabla}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", f"Reporte de {tabla}")
             elif exportar == "xlsx":
-                exportar_excel(df, nombre_usuario, f"{tabla}.xlsx")
+                exportar_excel(df, nombre_usuario, f"{tabla}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
 
         except Exception as e:
             console.print(f"❌ Error en la consulta: {e}", style="bold red")
