@@ -21,7 +21,7 @@ def registrar_egreso():
 
     # Mostrar ingresos activos (sin egreso)
     cursor.execute("""
-        SELECT i.id_ingreso, p.nombre, i.fecha_ingreso, i.hora_ingreso, i.servicio_hospitalario
+        SELECT i.id_ingreso, p.ci, p.nombre, i.fecha_ingreso, i.hora_ingreso, i.servicio_hospitalario
         FROM Ingreso i
         JOIN Paciente p ON i.ci = p.ci
         LEFT JOIN Egreso e ON i.id_ingreso = e.id_ingreso
@@ -35,18 +35,24 @@ def registrar_egreso():
 
     table = Table(title="Ingresos Activos")
     table.add_column("ID Ingreso", justify="center")
+    table.add_column("CI")
     table.add_column("Paciente")
     table.add_column("Fecha")
     table.add_column("Hora")
     table.add_column("Servicio")
     for i in ingresos:
-        table.add_row(str(i[0]), i[1], i[2], i[3], i[4])
+        table.add_row(str(i[0]), str(i[1]), i[2], i[3], i[4], i[5])
     console.print(table)
 
-    id_ingreso = Prompt.ask("Seleccione ID de ingreso para egreso").strip()
+    id_ingreso = Prompt.ask("Seleccione ID de ingreso para egreso (o 'C' para cancelar)").strip()
+    if id_ingreso.upper() == "C":
+        console.print("❌ Registro cancelado.", style="yellow")
+        conn.close()
+        return
+
     ingreso_ids = [str(i[0]) for i in ingresos]
     if id_ingreso not in ingreso_ids:
-        console.print("❌ Ingreso inválido.", style="red")
+        console.print("❌ Ingreso inválido. Ingrese un ID existente.", style="red")
         conn.close()
         return
 
@@ -56,13 +62,16 @@ def registrar_egreso():
 
     fecha_egreso = Prompt.ask("Fecha de egreso (YYYY-MM-DD, ENTER para hoy)").strip() or datetime.now().strftime("%Y-%m-%d")
     hora_egreso = Prompt.ask("Hora de egreso (HH:MM, ENTER para ahora)").strip() or datetime.now().strftime("%H:%M")
+    estado_egreso = Prompt.ask("Estado de egreso (Recuperado, Trasladado, Fallecido, o 'C' para cancelar)").strip()
+    if estado_egreso.upper() == "C":
+        console.print("❌ Registro cancelado.", style="yellow")
+        conn.close()
+        return
 
     # Calcular estancia en días
     fecha_ingreso_dt = datetime.strptime(fecha_ingreso, "%Y-%m-%d")
     fecha_egreso_dt = datetime.strptime(fecha_egreso, "%Y-%m-%d")
     estancia = (fecha_egreso_dt - fecha_ingreso_dt).days
-
-    estado_egreso = Prompt.ask("Estado de egreso (Recuperado, Trasladado, Fallecido)").strip()
 
     try:
         cursor.execute("""
@@ -111,13 +120,17 @@ def listar_egresos():
 # ==========================
 def actualizar_egreso():
     listar_egresos()
-    id_egreso = Prompt.ask("Ingrese ID de egreso a modificar").strip()
+    id_egreso = Prompt.ask("Ingrese ID de egreso a modificar (o 'C' para cancelar)").strip()
+    if id_egreso.upper() == "C":
+        console.print("❌ Actualización cancelada.", style="yellow")
+        return
+
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute("SELECT fecha_egreso, hora_egreso, estado_egreso FROM Egreso WHERE id_egreso = ?", (id_egreso,))
     egreso = cursor.fetchone()
     if not egreso:
-        console.print("⚠️ No se encontró el egreso.", style="red")
+        console.print("⚠️ No se encontró el egreso. Ingrese un ID existente.", style="red")
         conn.close()
         return
 
@@ -143,13 +156,17 @@ def actualizar_egreso():
 # ==========================
 def eliminar_egreso():
     listar_egresos()
-    id_egreso = Prompt.ask("Ingrese ID de egreso a eliminar").strip()
+    id_egreso = Prompt.ask("Ingrese ID de egreso a eliminar (o 'C' para cancelar)").strip()
+    if id_egreso.upper() == "C":
+        console.print("❌ Eliminación cancelada.", style="yellow")
+        return
+
     conn = conectar()
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM Egreso WHERE id_egreso = ?", (id_egreso,))
         if cursor.rowcount == 0:
-            console.print("⚠️ No se encontró el egreso.", style="red")
+            console.print("⚠️ No se encontró el egreso. Ingrese un ID existente.", style="red")
         else:
             conn.commit()
             console.print("✅ Egreso eliminado con éxito.", style="green")
@@ -157,6 +174,7 @@ def eliminar_egreso():
         console.print(f"⚠️ Ocurrió un error: {e}", style="red")
     finally:
         conn.close()
+
 
 # ==========================
 # Menú del módulo
