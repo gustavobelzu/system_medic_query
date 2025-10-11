@@ -90,7 +90,7 @@ def menu_principal(user):
 
         console.print(table)
 
-        opcion = Prompt.ask("Seleccione una opción", choices=[str(op[0]) for op in opciones])
+        opcion = Prompt.ask("Seleccione una opción (0 para salir)", choices=[str(op[0]) for op in opciones])
 
         if opcion == "0":
             console.print("👋 Saliendo del sistema...", style="bold yellow")
@@ -106,8 +106,8 @@ def menu_principal(user):
                     break
 
 
-        console.print("\nPresione Enter para volver al panel de control...")
-        input()
+        #console.print("\nPresione Enter para volver al panel de control...")
+        #input()
 
 # ==========================
 # Inicio del programa

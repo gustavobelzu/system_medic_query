@@ -149,7 +149,7 @@ def menu_estados(usuario=None):
         console.print("3. Actualizar estado")
         console.print("4. Eliminar estado")
         console.print("0. Volver")
-        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4"])
+        opcion = Prompt.ask("Seleccione una opción (0 para salir)", choices=["0","1","2","3","4"])
         if opcion == "1":
             registrar_estado()
         elif opcion == "2":

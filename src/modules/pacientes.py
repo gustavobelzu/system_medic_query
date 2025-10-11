@@ -228,7 +228,7 @@ def menu_pacientes(usuario=None):
         console.print("3. Actualizar paciente")
         console.print("4. Eliminar paciente")
         console.print("0. Volver")
-        opcion = Prompt.ask("Seleccione una opción", choices=["0","1","2","3","4"])
+        opcion = Prompt.ask("Seleccione una opción (0 para salir)", choices=["0","1","2","3","4"])
         if opcion == "1":
             registrar_paciente()
         elif opcion == "2":

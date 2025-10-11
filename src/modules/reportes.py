@@ -118,7 +118,7 @@ def menu_reportes(usuario=None):
             console.print(f"{i}. {t}")
         console.print(f"{len(tablas)+1}. Volver al menú principal")
 
-        opcion = Prompt.ask("Seleccione una tabla", choices=[str(i) for i in range(1, len(tablas)+2)])
+        opcion = Prompt.ask("Seleccione una tabla (9 para salir)", choices=[str(i) for i in range(1, len(tablas)+2)])
 
         if int(opcion) == len(tablas) + 1:
             break
