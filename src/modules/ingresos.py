@@ -11,42 +11,6 @@ def conectar():
     return sqlite3.connect(DB_PATH)
 
 # ==========================
-# Registrar ingreso
-# ==========================
-def registrar_ingreso():
-    conn = conectar()
-    cursor = conn.cursor()
-
-    console.print("\n=== Registro de Ingreso ===", style="bold cyan")
-    ci = Prompt.ask("CI del paciente").strip()
-
-    # Verificar si el paciente existe
-    cursor.execute("SELECT nombre FROM Paciente WHERE ci = ?", (ci,))
-    paciente = cursor.fetchone()
-    if not paciente:
-        console.print("❌ No existe un paciente con ese CI.", style="red")
-        conn.close()
-        return
-    console.print(f"Paciente encontrado: {paciente[0]}")
-
-    fecha_ingreso = Prompt.ask("Fecha de ingreso (YYYY-MM-DD, ENTER para hoy)").strip() or datetime.now().strftime("%Y-%m-%d")
-    hora_ingreso = Prompt.ask("Hora de ingreso (HH:MM, ENTER para ahora)").strip() or datetime.now().strftime("%H:%M")
-    servicio = Prompt.ask("Servicio hospitalario (Ej: Emergencias, UCI)").strip()
-    cama = Prompt.ask("Número de cama").strip()
-
-    try:
-        cursor.execute("""
-            INSERT INTO Ingreso (ci, fecha_ingreso, hora_ingreso, servicio_hospitalario, cama)
-            VALUES (?, ?, ?, ?, ?)
-        """, (ci, fecha_ingreso, hora_ingreso, servicio, cama))
-        conn.commit()
-        console.print("✅ Ingreso registrado con éxito.", style="green")
-    except Exception as e:
-        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
-    finally:
-        conn.close()
-
-# ==========================
 # Listar ingresos
 # ==========================
 def listar_ingresos():
@@ -63,7 +27,7 @@ def listar_ingresos():
 
     if not ingresos:
         console.print("⚠️ No hay ingresos registrados.", style="red")
-        return
+        return []
 
     table = Table(title="Lista de Ingresos")
     table.add_column("ID", justify="center")
@@ -75,13 +39,86 @@ def listar_ingresos():
     for i in ingresos:
         table.add_row(str(i[0]), i[1], i[2], i[3], i[4], i[5])
     console.print(table)
+    return ingresos
+
+# ==========================
+# Registrar ingreso
+# ==========================
+def registrar_ingreso():
+    conn = conectar()
+    cursor = conn.cursor()
+
+    # Mostrar lista de pacientes
+    cursor.execute("SELECT ci, nombre FROM Paciente ORDER BY nombre")
+    pacientes = cursor.fetchall()
+    if not pacientes:
+        console.print("⚠️ No hay pacientes registrados.", style="red")
+        conn.close()
+        return
+
+    console.print("\n📋 Lista de pacientes disponibles:")
+    table = Table(title="Pacientes")
+    table.add_column("CI", justify="center")
+    table.add_column("Nombre")
+    for p in pacientes:
+        table.add_row(str(p[0]), p[1])
+    console.print(table)
+
+    console.print("\n=== Registro de Ingreso ===", style="bold cyan")
+    ci = Prompt.ask("Ingrese el CI del paciente (o 'C' para cancelar)").strip()
+    if ci.upper() == "C":
+        console.print("❌ Registro cancelado.", style="yellow")
+        conn.close()
+        return
+
+    # Verificar si el paciente existe
+    cursor.execute("SELECT nombre FROM Paciente WHERE ci = ?", (ci,))
+    paciente = cursor.fetchone()
+    if not paciente:
+        console.print("❌ No existe un paciente con ese CI.", style="red")
+        conn.close()
+        return
+    console.print(f"Paciente seleccionado: {paciente[0]}")
+
+    fecha_ingreso = Prompt.ask("Fecha de ingreso (YYYY-MM-DD, ENTER para hoy)").strip() or datetime.now().strftime("%Y-%m-%d")
+    hora_ingreso = Prompt.ask("Hora de ingreso (HH:MM, ENTER para ahora)").strip() or datetime.now().strftime("%H:%M")
+    servicio = Prompt.ask("Servicio hospitalario (Ej: Emergencias, UCI, o 'C' para cancelar)").strip()
+    if servicio.upper() == "C":
+        console.print("❌ Registro cancelado.", style="yellow")
+        conn.close()
+        return
+    cama = Prompt.ask("Número de cama (o 'C' para cancelar)").strip()
+    if cama.upper() == "C":
+        console.print("❌ Registro cancelado.", style="yellow")
+        conn.close()
+        return
+
+    try:
+        cursor.execute("""
+            INSERT INTO Ingreso (ci, fecha_ingreso, hora_ingreso, servicio_hospitalario, cama)
+            VALUES (?, ?, ?, ?, ?)
+        """, (ci, fecha_ingreso, hora_ingreso, servicio, cama))
+        conn.commit()
+        console.print("✅ Ingreso registrado con éxito.", style="green")
+    except Exception as e:
+        console.print(f"⚠️ Ocurrió un error: {e}", style="red")
+    finally:
+        conn.close()
+
 
 # ==========================
 # Actualizar ingreso
 # ==========================
 def actualizar_ingreso():
-    listar_ingresos()
-    id_ingreso = Prompt.ask("Ingrese ID de ingreso a modificar").strip()
+    ingresos = listar_ingresos()
+    if not ingresos:
+        return
+
+    id_ingreso = Prompt.ask("Ingrese ID de ingreso a modificar (o 'C' para cancelar)").strip()
+    if id_ingreso.upper() == "C":
+        console.print("❌ Actualización cancelada.", style="yellow")
+        return
+
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute("SELECT ci, fecha_ingreso, hora_ingreso, servicio_hospitalario, cama FROM Ingreso WHERE id_ingreso = ?", (id_ingreso,))
@@ -113,8 +150,15 @@ def actualizar_ingreso():
 # Eliminar ingreso
 # ==========================
 def eliminar_ingreso():
-    listar_ingresos()
-    id_ingreso = Prompt.ask("Ingrese ID de ingreso a eliminar").strip()
+    ingresos = listar_ingresos()
+    if not ingresos:
+        return
+
+    id_ingreso = Prompt.ask("Ingrese ID de ingreso a eliminar (o 'C' para cancelar)").strip()
+    if id_ingreso.upper() == "C":
+        console.print("❌ Eliminación cancelada.", style="yellow")
+        return
+
     conn = conectar()
     cursor = conn.cursor()
     try:
@@ -135,6 +179,8 @@ def eliminar_ingreso():
 def menu_ingresos(usuario=None):
     while True:
         console.print("\n--- MÓDULO INGRESOS ---", style="bold magenta")
+        if usuario:
+            console.print(f"Usuario conectado: [green]{usuario[1]}[/green] ({usuario[2]})")
         console.print("1. Registrar ingreso")
         console.print("2. Listar ingresos")
         console.print("3. Actualizar ingreso")
@@ -154,5 +200,3 @@ def menu_ingresos(usuario=None):
 
 if __name__ == "__main__":
     menu_ingresos()
-
-
