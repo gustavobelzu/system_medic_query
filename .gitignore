@@ -8,4 +8,5 @@ apprich.py
 # Archivos para insertar datos en lae base de datos
 insertar.py
 
-
+# Archivos para insertar datos en lae base de datos
+operaciones.py
