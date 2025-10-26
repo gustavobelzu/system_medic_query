@@ -1,30 +1,42 @@
-import os
 import sqlite3
-from PySide6.QtWidgets import QMainWindow, QMessageBox
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile
+from PySide6.QtWidgets import QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
 from desktop_gui.dashboard_window import DashboardWindow
+import os
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias.db")
 
 class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("Login - System Medic Query")
+        self.setFixedSize(300, 200)
 
-        # Cargar UI
-        ui_path = os.path.join(os.path.dirname(__file__), "login.ui")
-        ui_file = QFile(ui_path)
-        ui_file.open(QFile.ReadOnly)
-        loader = QUiLoader()
-        self.ui = loader.load(ui_file, self)
-        ui_file.close()
+        # Widgets
+        layout = QVBoxLayout()
+        central = QWidget()
+        central.setLayout(layout)
+        self.setCentralWidget(central)
+
+        self.lbl_user = QLabel("Usuario:")
+        self.txt_user = QLineEdit()
+        self.lbl_pass = QLabel("Contraseña:")
+        self.txt_pass = QLineEdit()
+        self.txt_pass.setEchoMode(QLineEdit.Password)
+        self.btn_login = QPushButton("Ingresar")
+
+        # Agregar al layout
+        layout.addWidget(self.lbl_user)
+        layout.addWidget(self.txt_user)
+        layout.addWidget(self.lbl_pass)
+        layout.addWidget(self.txt_pass)
+        layout.addWidget(self.btn_login)
 
         # Conectar botón
-        self.ui.btn_login.clicked.connect(self.handle_login)
+        self.btn_login.clicked.connect(self.handle_login)
 
     def handle_login(self):
-        username = self.ui.txt_user.text().strip()
-        password = self.ui.txt_password.text().strip()
+        username = self.txt_user.text().strip()
+        password = self.txt_pass.text().strip()
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()

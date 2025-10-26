@@ -1,0 +1,37 @@
+QMainWindow {
+    background-color: #f0f2f5;
+}
+
+QLabel {
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14pt;
+    color: #333333;
+}
+
+QPushButton {
+    background-color: #0078d7;
+    color: white;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12pt;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #005a9e;
+}
+
+QPushButton:pressed {
+    background-color: #004080;
+}
+
+QLineEdit {
+    border: 2px solid #cccccc;
+    border-radius: 6px;
+    padding: 4px;
+    font-size: 12pt;
+}
+
+QLineEdit:focus {
+    border: 2px solid #0078d7;
+}
