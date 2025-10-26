@@ -26,7 +26,7 @@ class PacienteForm(QDialog):
     def __init__(self, parent=None, paciente=None):
         super().__init__(parent)
         self.setWindowTitle("Registrar/Editar Paciente")
-        self.setFixedSize(400, 400)
+        self.setFixedSize(400, 420)
         self.paciente = paciente
 
         layout = QVBoxLayout()
@@ -35,6 +35,9 @@ class PacienteForm(QDialog):
         # Formulario
         form_layout = QFormLayout()
         self.txt_ci = QLineEdit()
+        self.lbl_error_ci = QLabel("")  # <-- etiqueta de error
+        self.lbl_error_ci.setStyleSheet("color: red; font-size: 9pt")
+
         self.txt_nombre = QLineEdit()
         self.txt_edad = QLineEdit()
         self.txt_sexo = QLineEdit()
@@ -50,9 +53,10 @@ class PacienteForm(QDialog):
         self.estados = cursor.fetchall()
         conn.close()
         for e in self.estados:
-            self.cmb_estado.addItem(e[1], e[0])  # texto = estado, data = id_estado
+            self.cmb_estado.addItem(e[1], e[0])
 
         form_layout.addRow("CI:", self.txt_ci)
+        form_layout.addRow("", self.lbl_error_ci)  # <-- mostrar mensaje aquí
         form_layout.addRow("Nombre:", self.txt_nombre)
         form_layout.addRow("Edad:", self.txt_edad)
         form_layout.addRow("Sexo (M/F):", self.txt_sexo)
@@ -88,6 +92,33 @@ class PacienteForm(QDialog):
                     self.cmb_estado.setCurrentIndex(i)
                     break
 
+        # Validar CI en tiempo real
+        self.txt_ci.textChanged.connect(self.verificar_ci)
+
+    # -------------------------
+    # Validación CI
+    # -------------------------
+    def verificar_ci(self):
+        if self.paciente:  # Si estamos editando, no validar
+            self.lbl_error_ci.setText("")
+            return
+        ci = self.txt_ci.text().strip()
+        if not ci:
+            self.lbl_error_ci.setText("")
+            return
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM Paciente WHERE ci=?", (ci,))
+        existe = cursor.fetchone()
+        conn.close()
+        if existe:
+            self.lbl_error_ci.setText("⚠️ Este CI ya está registrado")
+        else:
+            self.lbl_error_ci.setText("")
+
+    # -------------------------
+    # Guardar paciente
+    # -------------------------
     def guardar(self):
         ci = self.txt_ci.text().strip()
         nombre = self.txt_nombre.text().strip()
@@ -104,6 +135,17 @@ class PacienteForm(QDialog):
         if sexo not in ["M", "F"]:
             QMessageBox.warning(self, "Error", "El sexo debe ser 'M' o 'F'.")
             return
+
+        # Validación final de CI duplicado
+        if not self.paciente:
+            conn = conectar()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM Paciente WHERE ci=?", (ci,))
+            if cursor.fetchone():
+                self.lbl_error_ci.setText("⚠️ Este CI ya está registrado")
+                conn.close()
+                return
+            conn.close()
 
         conn = conectar()
         cursor = conn.cursor()
@@ -125,6 +167,7 @@ class PacienteForm(QDialog):
             QMessageBox.critical(self, "Error", f"Ocurrió un error: {e}")
         finally:
             conn.close()
+
 
 # ==========================
 # PANEL PACIENTES

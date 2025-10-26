@@ -17,7 +17,7 @@ class EstadoForm(QDialog):
     def __init__(self, parent=None, estado=None):
         super().__init__(parent)
         self.setWindowTitle("Registrar/Editar Estado")
-        self.setFixedSize(300, 200)
+        self.setFixedSize(350, 250)  # aumentar ancho y alto
         self.estado = estado
 
         layout = QVBoxLayout()
@@ -25,8 +25,16 @@ class EstadoForm(QDialog):
 
         form_layout = QFormLayout()
         self.txt_estado = QLineEdit()
+
+        self.lbl_error_estado = QLabel("")  # etiqueta de error
+        self.lbl_error_estado.setStyleSheet("color: red; font-size: 10pt")
+        self.lbl_error_estado.setWordWrap(True)  # permitir que el texto se rompa
+        self.lbl_error_estado.setMinimumHeight(20)  # altura mínima para que sea visible
+
         self.txt_condicion = QLineEdit()
+
         form_layout.addRow("Estado:", self.txt_estado)
+        form_layout.addRow("", self.lbl_error_estado)
         form_layout.addRow("Condición especial:", self.txt_condicion)
         layout.addLayout(form_layout)
 
@@ -44,26 +52,64 @@ class EstadoForm(QDialog):
             self.txt_estado.setText(estado[1])
             self.txt_condicion.setText(estado[2] if estado[2] else "")
 
+        self.txt_estado.textChanged.connect(self.verificar_estado)
+
+
+    # -------------------------
+    # Validación de duplicados
+    # -------------------------
+    def verificar_estado(self):
+        if self.estado:  # Si estamos editando, no validar
+            self.lbl_error_estado.setText("")
+            return
+        estado_text = self.txt_estado.text().strip()
+        if not estado_text:
+            self.lbl_error_estado.setText("")
+            return
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM Estado WHERE estado=?", (estado_text,))
+        existe = cursor.fetchone()
+        conn.close()
+        if existe:
+            self.lbl_error_estado.setText("⚠️ Este estado ya existe")
+        else:
+            self.lbl_error_estado.setText("")
+
+    # -------------------------
+    # Guardar estado
+    # -------------------------
     def guardar(self):
-        estado = self.txt_estado.text().strip()
+        estado_text = self.txt_estado.text().strip()
         condicion = self.txt_condicion.text().strip()
 
-        if not estado:
+        if not estado_text:
             QMessageBox.warning(self, "Error", "El campo Estado es obligatorio")
             return
 
-        conn = conectar()
+        # Validación final de duplicado
+        if not self.estado:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM Estado WHERE estado=?", (estado_text,))
+            if cursor.fetchone():
+                self.lbl_error_estado.setText("⚠️ Este estado ya existe")
+                conn.close()
+                return
+            conn.close()
+
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         try:
             if self.estado:
                 cursor.execute(
                     "UPDATE Estado SET estado=?, condicion_especial=? WHERE id_estado=?",
-                    (estado, condicion if condicion else None, self.estado[0])
+                    (estado_text, condicion if condicion else None, self.estado[0])
                 )
             else:
                 cursor.execute(
                     "INSERT INTO Estado (estado, condicion_especial) VALUES (?, ?)",
-                    (estado, condicion if condicion else None)
+                    (estado_text, condicion if condicion else None)
                 )
             conn.commit()
             self.accept()
@@ -71,6 +117,7 @@ class EstadoForm(QDialog):
             QMessageBox.warning(self, "Error", f"Ocurrió un error: {e}")
         finally:
             conn.close()
+
 
 # ==========================
 # Panel Estados
