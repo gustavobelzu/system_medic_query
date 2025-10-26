@@ -9,14 +9,14 @@ class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Login - System Medic Query")
-        self.setFixedSize(300, 200)
+        self.setFixedSize(350, 220)
 
-        # Widgets
         layout = QVBoxLayout()
         central = QWidget()
         central.setLayout(layout)
         self.setCentralWidget(central)
 
+        # Widgets
         self.lbl_user = QLabel("Usuario:")
         self.txt_user = QLineEdit()
         self.lbl_pass = QLabel("Contraseña:")
@@ -24,7 +24,6 @@ class LoginWindow(QMainWindow):
         self.txt_pass.setEchoMode(QLineEdit.Password)
         self.btn_login = QPushButton("Ingresar")
 
-        # Agregar al layout
         layout.addWidget(self.lbl_user)
         layout.addWidget(self.txt_user)
         layout.addWidget(self.lbl_pass)

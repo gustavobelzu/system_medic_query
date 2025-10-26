@@ -1,13 +1,16 @@
+/* Fondo principal */
 QMainWindow {
     background-color: #f0f2f5;
 }
 
+/* Labels */
 QLabel {
     font-family: "Segoe UI", Arial, sans-serif;
     font-size: 14pt;
     color: #333333;
 }
 
+/* Botones */
 QPushButton {
     background-color: #0078d7;
     color: white;
@@ -23,6 +26,15 @@ QPushButton:hover {
 
 QPushButton:pressed {
     background-color: #004080;
+}
+
+/* Botón salir */
+QPushButton#btn_salir {
+    background-color: #d9534f;
+}
+
+QPushButton#btn_salir:hover {
+    background-color: #c9302c;
 }
 
 QLineEdit {
