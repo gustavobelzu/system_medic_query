@@ -1,0 +1,103 @@
+1️⃣ Preparar tu proyecto
+
+Asegúrate de que tu proyecto esté organizado, por ejemplo:
+
+system_medic_query/
+├─ manage.py
+├─ database/
+│  └─ emergencias.db
+├─ modules/
+│  └─ ... (tus módulos de estados, pacientes, etc.)
+├─ src/
+└─ requirements.txt
+
+
+Crea un requirements.txt con todas las dependencias usadas en tu app de consola. Por ejemplo:
+
+rich
+pyfiglet
+faker
+
+
+Puedes generar automáticamente:
+
+pip freeze > requirements.txt
+
+2️⃣ Crear un entorno limpio (opcional)
+
+Es recomendable usar un entorno virtual limpio para que tu .exe no incluya dependencias innecesarias:
+
+python -m venv .venv_build
+.venv_build\Scripts\activate  # Windows
+pip install -r requirements.txt
+
+3️⃣ Instalar PyInstaller
+
+PyInstaller convierte tu script Python en un ejecutable .exe:
+
+pip install pyinstaller
+
+4️⃣ Generar el ejecutable
+
+Desde la carpeta donde está manage.py:
+
+pyinstaller --onefile --name "system_medic_query_v0.1" manage.py
+
+
+Explicación de opciones:
+
+--onefile → genera un solo .exe.
+
+--name "system_medic_query_v0.1" → nombre del ejecutable.
+
+manage.py → script principal.
+
+Opcional: Si quieres un icono personalizado:
+
+pyinstaller --onefile --name "system_medic_query_v0.1" --icon=icon.ico manage.py
+
+5️⃣ Ubicación del ejecutable
+
+Al terminar, PyInstaller crea carpetas:
+
+dist/
+    system_medic_query_v0.1.exe
+build/
+    ...
+
+
+Tu .exe está en dist/. Puedes copiarlo a cualquier carpeta y ejecutarlo en otra PC.
+
+6️⃣ Incluir base de datos y módulos
+
+La base de datos (emergencias.db) no se incluye automáticamente en --onefile.
+
+Puedes dejar que tu app busque la BD en la misma carpeta que el .exe.
+
+O usar --add-data de PyInstaller para incluirla:
+
+pyinstaller --onefile --add-data "database/emergencias.db;database" --name "system_medic_query_v0.1" manage.py
+
+
+Nota: En Windows, separa fuente y destino con ; (ruta_origen;ruta_destino).
+
+Asegúrate de que todos los módulos y carpetas necesarias estén en el mismo directorio que tu .exe, o estén referenciadas correctamente en el código usando rutas relativas.
+
+7️⃣ Probar tu .exe
+
+Copia dist/system_medic_query_v0.1.exe a otra carpeta (o PC).
+
+Ejecuta doble clic o desde CMD:
+
+system_medic_query_v0.1.exe
+
+
+Debería abrir tu consola y funcionar igual que con Python.
+
+💡 Tip adicional:
+Si quieres hacer un paquete portátil completo (con la BD incluida), crea una carpeta v0.1_portable/ y dentro:
+
+v0.1_portable/
+├─ system_medic_query_v0.1.exe
+└─ database/
+    └─ emergencias.db

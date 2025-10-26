@@ -4,6 +4,15 @@ from desktop_gui.login_window import LoginWindow
 from desktop_gui.database_init import inicializar_bd, hay_usuarios, poblar_datos_falsos
 from desktop_gui.usuarios_panel import UsuarioForm
 
+def resource_path(relative_path):
+    """Devuelve la ruta válida tanto en desarrollo como en el .exe."""
+    try:
+        base_path = sys._MEIPASS  # Carpeta temporal usada por PyInstaller
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
 # Inicializar la base de datos
 inicializar_bd()
 
@@ -22,11 +31,12 @@ if not hay_usuarios():
 # Poblar datos falsos opcionalmente
 poblar_datos_falsos()
 
-# Cargar estilo (opcional)
-style_path = os.path.join(os.path.dirname(__file__), "desktop_gui", "style.qss")
+# Cargar estilo
+style_path = resource_path("desktop_gui/style.qss")
 if os.path.exists(style_path):
     with open(style_path, "r", encoding="utf-8") as f:
         app.setStyleSheet(f.read())
+
 
 # Abrir ventana de login / dashboard
 window = LoginWindow()
