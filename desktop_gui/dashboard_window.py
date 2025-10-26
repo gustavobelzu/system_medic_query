@@ -5,6 +5,7 @@ from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtCore import Qt, QSize
 import os
 import sys
+from PySide6.QtWidgets import QMessageBox
 
 # Ajustar path a src si es necesario
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
@@ -100,8 +101,9 @@ class DashboardWindow(QMainWindow):
         # Botón salir
         self.btn_salir = QPushButton("Salir")
         self.btn_salir.setMinimumHeight(50)
-        self.btn_salir.clicked.connect(self.close)
         self.grid_layout.addWidget(self.btn_salir, fila+1, 0, 1, 3)
+        self.btn_salir.clicked.disconnect()
+        self.btn_salir.clicked.connect(self.salir_sistema)
 
     # --------------------------
     # Métodos
@@ -126,6 +128,19 @@ class DashboardWindow(QMainWindow):
         x = (screen.width() - size.width()) // 2
         y = (screen.height() - size.height()) // 2
         self.move(x, y)
+    # Nuevo método
+    def salir_sistema(self):
+        QMessageBox.information(
+            self,
+            "Gracias",
+            "Gracias por usar el sistema. ¡Vuelva pronto!",
+            QMessageBox.Ok
+        )
+        self.close()
+
+    def closeEvent(self, event):
+        # Solo acepta el cierre sin mensaje
+        event.accept()
 
 # ==========================
 # Ejemplo de inicio
