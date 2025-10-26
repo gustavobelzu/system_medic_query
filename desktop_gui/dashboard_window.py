@@ -9,10 +9,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "s
 # Importar los paneles de cada módulo
 from desktop_gui.pacientes_panel import PacientesPanel
 from desktop_gui.estados_panel import EstadosPanel
-# from desktop_gui.usuarios_panel import UsuariosPanel
-# from desktop_gui.ingresos_panel import IngresosPanel
-# from desktop_gui.egresos_panel import EgresosPanel
-# from desktop_gui.reportes_panel import ReportesPanel
+from desktop_gui.usuarios_panel import UsuariosPanel
+from desktop_gui.ingresos_panel import IngresosPanel
+from desktop_gui.egresos_panel import EgresosPanel
+from desktop_gui.reportes_panel import ReportesPanel
 
 class DashboardWindow(QMainWindow):
     def __init__(self, user):
@@ -45,10 +45,10 @@ class DashboardWindow(QMainWindow):
         self.botones = {
             "Pacientes": PacientesPanel,
             "Estados": EstadosPanel,
-            # "Usuarios": UsuariosPanel,
-            # "Ingresos": IngresosPanel,
-            # "Egresos": EgresosPanel,
-            # "Reportes": ReportesPanel
+            "Usuarios": UsuariosPanel,
+            "Ingresos": IngresosPanel,
+            "Egresos": EgresosPanel,
+            "Reportes": ReportesPanel
         }
 
         fila, col = 0, 0
