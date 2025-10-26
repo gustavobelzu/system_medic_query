@@ -1,20 +1,25 @@
+import os
 import sqlite3
 from PySide6.QtWidgets import QMainWindow, QMessageBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
 from desktop_gui.dashboard_window import DashboardWindow
 
-DB_PATH = "../database/emergencias.db"
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias.db")
 
 class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        loader = QUiLoader()
-        ui_file = QFile("login.ui")
+
+        # Cargar UI
+        ui_path = os.path.join(os.path.dirname(__file__), "login.ui")
+        ui_file = QFile(ui_path)
         ui_file.open(QFile.ReadOnly)
+        loader = QUiLoader()
         self.ui = loader.load(ui_file, self)
         ui_file.close()
 
+        # Conectar botón
         self.ui.btn_login.clicked.connect(self.handle_login)
 
     def handle_login(self):

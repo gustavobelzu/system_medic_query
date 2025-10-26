@@ -1,28 +1,28 @@
+import os
+import sys
 from PySide6.QtWidgets import QMainWindow, QMessageBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
-import sys
-import os
 
-# Agregar tus módulos al path
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "modules"))
+# Agregar src al path para poder importar módulos
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from src.modules.estados import menu_estados
-from src.modules.pacientes import menu_pacientes
-from src.modules.usuarios import menu_usuarios
-from src.modules.ingresos import menu_ingresos
-from src.modules.egresos import menu_egresos
-from src.modules.reportes import menu_reportes
-
-
-
+from modules.estados import menu_estados
+from modules.pacientes import menu_pacientes
+from modules.usuarios import menu_usuarios
+from modules.ingresos import menu_ingresos
+from modules.egresos import menu_egresos
+from modules.reportes import menu_reportes
 
 class DashboardWindow(QMainWindow):
     def __init__(self, user):
         super().__init__()
-        loader = QUiLoader()
-        ui_file = QFile("dashboard.ui")
+
+        # Cargar UI
+        ui_path = os.path.join(os.path.dirname(__file__), "dashboard.ui")
+        ui_file = QFile(ui_path)
         ui_file.open(QFile.ReadOnly)
+        loader = QUiLoader()
         self.ui = loader.load(ui_file, self)
         ui_file.close()
 
