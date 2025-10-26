@@ -33,7 +33,7 @@ class DashboardWindow(QMainWindow):
         # --------------------------
         # Título grande estilizado
         # --------------------------
-        lbl_titulo = QLabel("SISTEMA DE CONTROL DE PACIENTES\nCLINICA LA FUENTE")
+        lbl_titulo = QLabel("Sistema de Control de Servicios de Emergencias\nCLINICA LA FUENTE")
         lbl_titulo.setAlignment(Qt.AlignCenter)
         lbl_titulo.setStyleSheet("""
             color: #1976d2;
