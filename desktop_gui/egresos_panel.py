@@ -1,10 +1,11 @@
-import sqlite3
+import sqlite3, os
 from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget,
-    QTableWidgetItem, QLabel, QMessageBox, QDialog, QFormLayout, QLineEdit, QComboBox
+    QTableWidgetItem, QLabel, QMessageBox, QDialog, QFormLayout,
+    QComboBox, QDateEdit, QTimeEdit
 )
-import os
+from PySide6.QtCore import QDate, QTime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias.db")
 
@@ -18,15 +19,14 @@ class EgresoForm(QDialog):
     def __init__(self, parent=None, egreso=None):
         super().__init__(parent)
         self.setWindowTitle("Registrar/Editar Egreso")
-        self.setFixedSize(350, 300)
+        self.setFixedSize(400, 300)
         self.egreso = egreso
 
         layout = QVBoxLayout()
         self.setLayout(layout)
-
         form_layout = QFormLayout()
 
-        # Ingreso a seleccionar
+        # Pacientes ingresados
         self.cb_ingreso = QComboBox()
         conn = conectar()
         cursor = conn.cursor()
@@ -34,22 +34,33 @@ class EgresoForm(QDialog):
             SELECT i.id_ingreso, p.ci, p.nombre, i.fecha_ingreso
             FROM Ingreso i
             JOIN Paciente p ON i.ci = p.ci
-            LEFT JOIN Egreso e ON i.id_ingreso = e.id_ingreso
-            WHERE e.id_egreso IS NULL
+            ORDER BY i.fecha_ingreso DESC
         """)
         ingresos = cursor.fetchall()
-        conn.close()
-        self.ingresos_dict = {f"{i[2]} ({i[1]}) - {i[3]}": i for i in ingresos}
-        self.cb_ingreso.addItems(self.ingresos_dict.keys())
+        self.ingresos_dict = {}
+        for i in ingresos:
+            text = f"{i[2]} ({i[1]}) - {i[3]}"
+            self.cb_ingreso.addItem(text)
+            self.ingresos_dict[text] = i
 
-        self.txt_fecha = QLineEdit(datetime.now().strftime("%Y-%m-%d"))
-        self.txt_hora = QLineEdit(datetime.now().strftime("%H:%M"))
+        # Fecha y hora
+        from PySide6.QtWidgets import QDateEdit, QTimeEdit
+        from PySide6.QtCore import QDate, QTime
+        self.date_egreso = QDateEdit(QDate.currentDate())
+        self.date_egreso.setCalendarPopup(True)
+        self.time_egreso = QTimeEdit(QTime.currentTime())
+
+        # Estados: cargar desde tabla Estado
         self.cb_estado = QComboBox()
-        self.cb_estado.addItems(["Recuperado","Trasladado","Fallecido"])
+        cursor.execute("SELECT id_estado, estado FROM Estado ORDER BY estado")
+        self.estados = cursor.fetchall()  # lista de tuplas (id_estado, nombre)
+        for e in self.estados:
+            self.cb_estado.addItem(e[1], e[0])
+        conn.close()
 
         form_layout.addRow("Ingreso:", self.cb_ingreso)
-        form_layout.addRow("Fecha de egreso:", self.txt_fecha)
-        form_layout.addRow("Hora de egreso:", self.txt_hora)
+        form_layout.addRow("Fecha de egreso:", self.date_egreso)
+        form_layout.addRow("Hora de egreso:", self.time_egreso)
         form_layout.addRow("Estado:", self.cb_estado)
 
         layout.addLayout(form_layout)
@@ -67,26 +78,36 @@ class EgresoForm(QDialog):
 
         # Si es edición
         if egreso:
+            # Seleccionar ingreso correspondiente
+            ingreso_text = f"{egreso[2]} ({egreso[1]}) - {egreso[3]}"
+            index = self.cb_ingreso.findText(ingreso_text)
+            if index >= 0:
+                self.cb_ingreso.setCurrentIndex(index)
             self.cb_ingreso.setEnabled(False)
-            self.cb_ingreso.addItem(f"{egreso[1]} ({egreso[2]}) - {egreso[3]}")
-            self.cb_ingreso.setCurrentIndex(0)
-            self.txt_fecha.setText(egreso[4])
-            self.txt_hora.setText(egreso[5])
-            self.cb_estado.setCurrentText(egreso[6])
+
+            self.date_egreso.setDate(QDate.fromString(egreso[4], "yyyy-MM-dd"))
+            self.time_egreso.setTime(QTime.fromString(egreso[5], "HH:mm"))
+
+            # Seleccionar estado según id_estado
+            estado_id = egreso[6]  # suponer que egreso[6] es id_estado
+            for i in range(self.cb_estado.count()):
+                if self.cb_estado.itemData(i) == estado_id:
+                    self.cb_estado.setCurrentIndex(i)
+                    break
 
     def guardar(self):
         ingreso_text = self.cb_ingreso.currentText()
-        ingreso = self.ingresos_dict.get(ingreso_text) if not self.egreso else (None, self.egreso[2], self.egreso[1], self.egreso[3], self.egreso[4])
+        ingreso = self.ingresos_dict.get(ingreso_text)
         if not ingreso and not self.egreso:
-            QMessageBox.warning(self, "Error", "Debe seleccionar un ingreso válido")
+            QMessageBox.warning(self, "Error", "Seleccione un ingreso válido")
             return
 
         id_ingreso = ingreso[0] if ingreso else self.egreso[0]
         ci = ingreso[1] if ingreso else self.egreso[2]
         fecha_ingreso = ingreso[3] if ingreso else self.egreso[3]
 
-        fecha_egreso = self.txt_fecha.text().strip()
-        hora_egreso = self.txt_hora.text().strip()
+        fecha_egreso = self.date_egreso.date().toString("yyyy-MM-dd")
+        hora_egreso = self.time_egreso.time().toString("HH:mm")
         estado_egreso = self.cb_estado.currentText()
 
         # Calcular estancia
@@ -193,12 +214,13 @@ class EgresosPanel(QWidget):
         conn = conectar()
         cursor = conn.cursor()
         cursor.execute("""
-        SELECT e.id_egreso, e.id_ingreso, e.ci, i.fecha_ingreso, e.fecha_egreso, e.hora_egreso, e.estado_egreso
-        FROM Egreso e
-        JOIN Ingreso i ON e.id_ingreso = i.id_ingreso
-        WHERE e.id_egreso=?
+            SELECT e.id_egreso, e.id_ingreso, e.ci, i.fecha_ingreso, e.fecha_egreso, e.hora_egreso, e.estado_egreso,
+                   p.nombre
+            FROM Egreso e
+            JOIN Ingreso i ON e.id_ingreso = i.id_ingreso
+            JOIN Paciente p ON e.ci = p.ci
+            WHERE e.id_egreso=?
         """, (id_egreso,))
-
         egreso = cursor.fetchone()
         conn.close()
         form = EgresoForm(self, egreso)
