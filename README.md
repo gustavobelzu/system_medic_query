@@ -6,6 +6,11 @@ Este sistema permite gestionar consultas médicas de emergencia, registrar pacie
 Tiene App de consola para gestionar pacientes, ingresos, egresos y usuarios.
 ## Instalación
 ```bash
+#-crear carpeta en su disco duro a preferencia clonar 
+#-abra el bash a elección
+#-instalar los requerimientos con pip
+#-iniciar el desktop por main.py
+#-iniciar el tui rich y consola con manage.py
 git clone https://github.com/gustavobelzu/system_medic_query.git
-cd system_medic_query
+#system_medic_query
 pip install -r requirements.txt
