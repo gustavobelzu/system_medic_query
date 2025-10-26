@@ -115,6 +115,7 @@ class UsuarioForm(QDialog):
             self.lbl_error_usuario.setText("")
 
     # Guardar usuario
+    # Guardar usuario
     def guardar(self):
         username = self.txt_username.text().strip()
         password = self.txt_password.text().strip()
@@ -149,6 +150,7 @@ class UsuarioForm(QDialog):
                 """, (nombre, cargo, especialidad if especialidad else None, username))
                 if password:
                     cursor.execute("UPDATE Usuario SET password=? WHERE username=?", (password, username))
+                mensaje = "Usuario actualizado exitosamente"
             else:
                 cursor.execute("INSERT INTO Usuario (username, password) VALUES (?, ?)", (username, password))
                 id_usuario = cursor.lastrowid
@@ -156,12 +158,16 @@ class UsuarioForm(QDialog):
                     INSERT INTO Personal (id_usuario, nombre, cargo, especialidad) 
                     VALUES (?, ?, ?, ?)
                 """, (id_usuario, nombre, cargo, especialidad if especialidad else None))
+                mensaje = "Usuario registrado exitosamente"
+
             conn.commit()
+            QMessageBox.information(self, "Éxito", mensaje)
             self.accept()
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Ocurrió un error: {e}")
         finally:
             conn.close()
+
 
 # ==========================
 # Panel Usuarios
