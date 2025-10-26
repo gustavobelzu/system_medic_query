@@ -22,13 +22,14 @@ class ResultadosReportes(QWidget):
         self.volver_callback = volver_callback
         self.setWindowTitle("Resultados del Reporte")
         self.setMinimumSize(900, 550)
+        self.hide()  # oculta el panel de reportes
 
         layout = QVBoxLayout(self)
         lbl = QLabel(f"📄 Resultados de: {self.nombre_tabla}")
         lbl.setStyleSheet("font-weight:bold; font-size:16pt; color:#1976d2")
         layout.addWidget(lbl)
 
-        # Tabla
+        # Tabla de resultados
         self.tabla = QTableWidget()
         layout.addWidget(self.tabla)
         self.mostrar_tabla()
@@ -68,11 +69,9 @@ class ResultadosReportes(QWidget):
         elements = []
         styles = getSampleStyleSheet()
 
-        # Título de tabla en color
         elements.append(Paragraph(f"Reporte: {self.nombre_tabla}", styles["Title"]))
         elements.append(Spacer(1,12))
 
-        # Datos
         data = [self.df.columns.tolist()] + self.df.values.tolist()
         table = Table(data)
         table.setStyle(TableStyle([
@@ -85,7 +84,6 @@ class ResultadosReportes(QWidget):
         elements.append(table)
         elements.append(Spacer(1,12))
 
-        # Info de usuario y fecha
         export_info = f"Usuario: {self.usuario} | Fecha de exportación: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         elements.append(Paragraph(export_info, styles["Normal"]))
 
@@ -100,9 +98,7 @@ class ResultadosReportes(QWidget):
         filename = f"{self.nombre_tabla}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         ruta = os.path.join(REPORT_DIR, filename)
 
-        # Crear un DataFrame con encabezados adicionales
         df_export = self.df.copy()
-        # Agregar info de usuario y fecha al final
         info = pd.DataFrame({
             "": ["Usuario:", "Fecha de exportación:"],
             "Valor": [self.usuario, datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
@@ -116,5 +112,5 @@ class ResultadosReportes(QWidget):
     def volver(self):
         self.close()
         if self.volver_callback:
-            self.volver_callback()
-   
+            self.volver_callback()  # mostrará de nuevo ReportesPanel
+
