@@ -1,23 +1,32 @@
 import sqlite3
+import os
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget,
-    QTableWidgetItem, QLabel, QMessageBox, QLineEdit, QFormLayout, QDialog
+    QTableWidgetItem, QLabel, QMessageBox, QLineEdit, QFormLayout, QDialog, QComboBox
 )
-import os
 
+# ==========================
+# CONFIGURACIÓN
+# ==========================
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias.db")
+
+DEPARTAMENTOS = [
+    "La Paz", "Cochabamba", "Santa Cruz",
+    "Oruro", "Potosí", "Chuquisaca",
+    "Tarija", "Beni", "Pando"
+]
 
 def conectar():
     return sqlite3.connect(DB_PATH)
 
 # ==========================
-# Formulario de Paciente
+# FORMULARIO DE PACIENTE
 # ==========================
 class PacienteForm(QDialog):
     def __init__(self, parent=None, paciente=None):
         super().__init__(parent)
         self.setWindowTitle("Registrar/Editar Paciente")
-        self.setFixedSize(350, 350)
+        self.setFixedSize(400, 400)
         self.paciente = paciente
 
         layout = QVBoxLayout()
@@ -29,17 +38,27 @@ class PacienteForm(QDialog):
         self.txt_nombre = QLineEdit()
         self.txt_edad = QLineEdit()
         self.txt_sexo = QLineEdit()
-        self.txt_departamento = QLineEdit()
+        self.cmb_departamento = QComboBox()
+        self.cmb_departamento.addItems(DEPARTAMENTOS)
         self.txt_telefono = QLineEdit()
-        self.txt_id_estado = QLineEdit()
+        self.cmb_estado = QComboBox()
+
+        # Cargar estados desde la BD
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id_estado, estado FROM Estado")
+        self.estados = cursor.fetchall()
+        conn.close()
+        for e in self.estados:
+            self.cmb_estado.addItem(e[1], e[0])  # texto = estado, data = id_estado
 
         form_layout.addRow("CI:", self.txt_ci)
         form_layout.addRow("Nombre:", self.txt_nombre)
         form_layout.addRow("Edad:", self.txt_edad)
         form_layout.addRow("Sexo (M/F):", self.txt_sexo)
-        form_layout.addRow("Departamento:", self.txt_departamento)
+        form_layout.addRow("Departamento:", self.cmb_departamento)
         form_layout.addRow("Teléfono:", self.txt_telefono)
-        form_layout.addRow("ID Estado:", self.txt_id_estado)
+        form_layout.addRow("Estado:", self.cmb_estado)
         layout.addLayout(form_layout)
 
         # Botones
@@ -60,21 +79,30 @@ class PacienteForm(QDialog):
             self.txt_nombre.setText(paciente[1])
             self.txt_edad.setText(str(paciente[2]))
             self.txt_sexo.setText(paciente[3])
-            self.txt_departamento.setText(paciente[4])
+            self.cmb_departamento.setCurrentText(paciente[4])
             self.txt_telefono.setText(str(paciente[5]))
-            self.txt_id_estado.setText(str(paciente[6]))
+            # Buscar índice del estado
+            estado_id = paciente[6]
+            for i in range(self.cmb_estado.count()):
+                if self.cmb_estado.itemData(i) == estado_id:
+                    self.cmb_estado.setCurrentIndex(i)
+                    break
 
     def guardar(self):
         ci = self.txt_ci.text().strip()
         nombre = self.txt_nombre.text().strip()
         edad = self.txt_edad.text().strip()
-        sexo = self.txt_sexo.text().strip()
-        departamento = self.txt_departamento.text().strip()
+        sexo = self.txt_sexo.text().strip().upper()
+        departamento = self.cmb_departamento.currentText()
         telefono = self.txt_telefono.text().strip()
-        id_estado = self.txt_id_estado.text().strip()
+        id_estado = self.cmb_estado.currentData()
 
         if not all([ci, nombre, edad, sexo, departamento, telefono, id_estado]):
-            QMessageBox.warning(self, "Error", "Todos los campos son obligatorios")
+            QMessageBox.warning(self, "Error", "Todos los campos son obligatorios.")
+            return
+
+        if sexo not in ["M", "F"]:
+            QMessageBox.warning(self, "Error", "El sexo debe ser 'M' o 'F'.")
             return
 
         conn = conectar()
@@ -94,12 +122,12 @@ class PacienteForm(QDialog):
             conn.commit()
             self.accept()
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Ocurrió un error: {e}")
+            QMessageBox.critical(self, "Error", f"Ocurrió un error: {e}")
         finally:
             conn.close()
 
 # ==========================
-# Panel Pacientes
+# PANEL PACIENTES
 # ==========================
 class PacientesPanel(QWidget):
     def __init__(self, volver_callback=None):
@@ -171,7 +199,7 @@ class PacientesPanel(QWidget):
     def editar(self):
         selected = self.tabla.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Error", "Seleccione un paciente para modificar")
+            QMessageBox.warning(self, "Error", "Seleccione un paciente para modificar.")
             return
         ci = selected[0].text()
         conn = conectar()
@@ -189,10 +217,10 @@ class PacientesPanel(QWidget):
     def eliminar(self):
         selected = self.tabla.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Error", "Seleccione un paciente para eliminar")
+            QMessageBox.warning(self, "Error", "Seleccione un paciente para eliminar.")
             return
         ci = selected[0].text()
-        reply = QMessageBox.question(self, "Confirmar", f"Eliminar paciente {ci}?",
+        reply = QMessageBox.question(self, "Confirmar", f"¿Eliminar paciente {ci}?",
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             conn = conectar()

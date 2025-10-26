@@ -9,33 +9,59 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias
 def conectar():
     return sqlite3.connect(DB_PATH)
 
-# ==========================
-# Formulario de Usuario
-# ==========================
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
+
 class UsuarioForm(QDialog):
     def __init__(self, parent=None, usuario=None):
         super().__init__(parent)
         self.setWindowTitle("Registrar/Editar Usuario")
-        self.setFixedSize(350, 300)
+        self.setFixedSize(400, 360)
         self.usuario = usuario
 
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-
+        layout = QVBoxLayout(self)
         form_layout = QFormLayout()
+
+        # -------------------------
+        # Campos de formulario
+        # -------------------------
         self.txt_username = QLineEdit()
+        self.lbl_error_usuario = QLabel("")
+        self.lbl_error_usuario.setStyleSheet("color: red; font-size: 9pt")
+
         self.txt_password = QLineEdit()
+        self.txt_password.setEchoMode(QLineEdit.Password)
+
+        self.txt_confirmar = QLineEdit()
+        self.txt_confirmar.setEchoMode(QLineEdit.Password)
+
+        self.btn_ver_password = QPushButton("👁")
+        self.btn_ver_password.setFixedWidth(35)
+        self.btn_ver_password.setToolTip("Mostrar/Ocultar contraseña")
+        self.btn_ver_password.setCheckable(True)
+
+        # Contenedor de contraseña + botón
+        pass_layout = QHBoxLayout()
+        pass_layout.addWidget(self.txt_password)
+        pass_layout.addWidget(self.btn_ver_password)
+
         self.txt_nombre = QLineEdit()
         self.txt_cargo = QLineEdit()
         self.txt_especialidad = QLineEdit()
 
         form_layout.addRow("Usuario:", self.txt_username)
-        form_layout.addRow("Contraseña:", self.txt_password)
+        form_layout.addRow("", self.lbl_error_usuario)
+        form_layout.addRow("Contraseña:", pass_layout)
+        form_layout.addRow("Confirmar contraseña:", self.txt_confirmar)
         form_layout.addRow("Nombre completo:", self.txt_nombre)
         form_layout.addRow("Cargo:", self.txt_cargo)
         form_layout.addRow("Especialidad:", self.txt_especialidad)
+
         layout.addLayout(form_layout)
 
+        # -------------------------
+        # Botones
+        # -------------------------
         btn_layout = QHBoxLayout()
         self.btn_guardar = QPushButton("Guardar")
         self.btn_cancelar = QPushButton("Cancelar")
@@ -43,9 +69,17 @@ class UsuarioForm(QDialog):
         btn_layout.addWidget(self.btn_cancelar)
         layout.addLayout(btn_layout)
 
+        # -------------------------
+        # Conexiones
+        # -------------------------
         self.btn_guardar.clicked.connect(self.guardar)
         self.btn_cancelar.clicked.connect(self.close)
+        self.btn_ver_password.toggled.connect(self.toggle_password)
+        self.txt_username.textChanged.connect(self.verificar_usuario)
 
+        # -------------------------
+        # Modo edición
+        # -------------------------
         if usuario:
             self.txt_username.setText(usuario[0])
             self.txt_username.setEnabled(False)
@@ -53,9 +87,38 @@ class UsuarioForm(QDialog):
             self.txt_cargo.setText(usuario[2])
             self.txt_especialidad.setText(usuario[3] if usuario[3] else "")
 
+    # Mostrar/Ocultar contraseña
+    def toggle_password(self, checked):
+        modo = QLineEdit.Normal if checked else QLineEdit.Password
+        self.txt_password.setEchoMode(modo)
+        self.txt_confirmar.setEchoMode(modo)
+
+    # Verifica si el usuario ya existe (solo al crear)
+    def verificar_usuario(self):
+        if self.usuario:  # Si está editando, no valida existencia
+            return
+
+        username = self.txt_username.text().strip()
+        if not username:
+            self.lbl_error_usuario.setText("")
+            return
+
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM Usuario WHERE username=?", (username,))
+        existe = cursor.fetchone()
+        conn.close()
+
+        if existe:
+            self.lbl_error_usuario.setText("⚠️ El usuario ya existe")
+        else:
+            self.lbl_error_usuario.setText("")
+
+    # Guardar usuario
     def guardar(self):
         username = self.txt_username.text().strip()
         password = self.txt_password.text().strip()
+        confirmar = self.txt_confirmar.text().strip()
         nombre = self.txt_nombre.text().strip()
         cargo = self.txt_cargo.text().strip()
         especialidad = self.txt_especialidad.text().strip()
@@ -63,6 +126,17 @@ class UsuarioForm(QDialog):
         if not all([username, nombre, cargo]):
             QMessageBox.warning(self, "Error", "Usuario, Nombre y Cargo son obligatorios")
             return
+
+        if not self.usuario:  # Solo al crear
+            if self.lbl_error_usuario.text():
+                QMessageBox.warning(self, "Error", "El usuario ya existe.")
+                return
+            if not password:
+                QMessageBox.warning(self, "Error", "Debe ingresar una contraseña.")
+                return
+            if password != confirmar:
+                QMessageBox.warning(self, "Error", "Las contraseñas no coinciden.")
+                return
 
         conn = conectar()
         cursor = conn.cursor()
@@ -78,8 +152,10 @@ class UsuarioForm(QDialog):
             else:
                 cursor.execute("INSERT INTO Usuario (username, password) VALUES (?, ?)", (username, password))
                 id_usuario = cursor.lastrowid
-                cursor.execute("INSERT INTO Personal (id_usuario, nombre, cargo, especialidad) VALUES (?, ?, ?, ?)",
-                               (id_usuario, nombre, cargo, especialidad if especialidad else None))
+                cursor.execute("""
+                    INSERT INTO Personal (id_usuario, nombre, cargo, especialidad) 
+                    VALUES (?, ?, ?, ?)
+                """, (id_usuario, nombre, cargo, especialidad if especialidad else None))
             conn.commit()
             self.accept()
         except Exception as e:

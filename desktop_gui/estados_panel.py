@@ -92,10 +92,14 @@ class EstadosPanel(QWidget):
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(3)
         self.tabla.setHorizontalHeaderLabels(["ID", "Estado", "Condición Especial"])
+        self.tabla.setColumnWidth(0, 60)    # ID
+        self.tabla.setColumnWidth(1, 200)   # Estado
+        self.tabla.setColumnWidth(2, 300)   # Condición Especial
         self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectRows)
         self.tabla.setMinimumHeight(250)
         main_layout.addWidget(self.tabla, stretch=1)
+
 
         btn_layout = QHBoxLayout()
         self.btn_crear = QPushButton("Crear")
@@ -115,6 +119,7 @@ class EstadosPanel(QWidget):
         self.btn_volver.clicked.connect(self.volver)
 
         self.listar_estados()
+        self.tabla.resizeColumnsToContents()
 
     def listar_estados(self):
         conn = conectar()
