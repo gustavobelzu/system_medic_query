@@ -13,6 +13,7 @@ from desktop_gui.usuarios_panel import UsuariosPanel
 from desktop_gui.ingresos_panel import IngresosPanel
 from desktop_gui.egresos_panel import EgresosPanel
 from desktop_gui.reportes_panel import ReportesPanel
+from desktop_gui.resultados_reportes import ResultadosReportes
 
 class DashboardWindow(QMainWindow):
     def __init__(self, user):

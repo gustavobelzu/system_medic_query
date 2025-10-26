@@ -1,6 +1,9 @@
 import sqlite3
 from PySide6.QtWidgets import QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
 from desktop_gui.dashboard_window import DashboardWindow
+from desktop_gui.resultados_reportes import ResultadosReportes
+from .resultados_reportes import ResultadosReportes
+
 import os
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias.db")

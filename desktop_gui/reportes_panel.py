@@ -2,34 +2,35 @@ import sqlite3, os
 import pandas as pd
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QTableWidget, QTableWidgetItem, QLineEdit, QMessageBox
+    QComboBox, QCheckBox, QTableWidget, QTableWidgetItem, QMessageBox, QDateEdit
 )
+from PySide6.QtCore import QDate
 from datetime import datetime
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from .resultados_reportes import ResultadosReportes
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias.db")
-REPORT_DIR = os.path.join(os.path.dirname(__file__), "..", "reportes")
 
 def conectar():
     return sqlite3.connect(DB_PATH)
 
-def asegurar_directorio():
-    if not os.path.exists(REPORT_DIR):
-        os.makedirs(REPORT_DIR)
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, \
+    QComboBox, QTableWidget, QTableWidgetItem, QCheckBox, QDateEdit, QGridLayout, QMessageBox
+from PySide6.QtWidgets import QHBoxLayout, QGridLayout, QLabel, QCheckBox, QDateEdit
+from PySide6.QtCore import QDate
+
 
 class ReportesPanel(QWidget):
     def __init__(self, volver_callback=None):
         super().__init__()
         self.volver_callback = volver_callback
         self.setWindowTitle("Módulo Reportes")
-        self.setMinimumSize(800, 500)
+        self.setMinimumSize(900, 600)
 
         layout = QVBoxLayout()
         self.setLayout(layout)
 
+        # Título
         lbl_titulo = QLabel("📊 Reportes y Consultas")
         lbl_titulo.setStyleSheet("font-weight:bold; font-size:16pt")
         layout.addWidget(lbl_titulo)
@@ -38,106 +39,143 @@ class ReportesPanel(QWidget):
         self.combo_tablas = QComboBox()
         layout.addWidget(QLabel("Seleccione una tabla:"))
         layout.addWidget(self.combo_tablas)
+        self.combo_tablas.currentTextChanged.connect(self.cargar_columnas_tabla)
 
-        # Input columnas
-        layout.addWidget(QLabel("Columnas (coma separadas, * para todas):"))
-        self.txt_columnas = QLineEdit("*")
-        layout.addWidget(self.txt_columnas)
+        # Layout columnas
+        self.columnas_layout = QGridLayout()
+        layout.addLayout(self.columnas_layout)
+
+        # Filtro paciente
+        self.combo_pacientes = QComboBox()
+        self.combo_pacientes.addItem("Todos", None)
+        layout.addWidget(QLabel("Filtrar por paciente:"))
+        layout.addWidget(self.combo_pacientes)
+        self.cargar_pacientes()
+
+        # Fechas
+        fechas_layout = QHBoxLayout()
+        self.date_inicio = QDateEdit(QDate.currentDate().addMonths(-1))
+        self.date_inicio.setCalendarPopup(True)
+        self.date_fin = QDateEdit(QDate.currentDate())
+        self.date_fin.setCalendarPopup(True)
+        fechas_layout.addWidget(QLabel("Fecha inicio:"))
+        fechas_layout.addWidget(self.date_inicio)
+        fechas_layout.addSpacing(20)
+        fechas_layout.addWidget(QLabel("Fecha fin:"))
+        fechas_layout.addWidget(self.date_fin)
+        layout.addLayout(fechas_layout)
 
         # Botones
         btn_layout = QHBoxLayout()
         self.btn_consultar = QPushButton("Consultar")
-        self.btn_exportar_pdf = QPushButton("Exportar PDF")
-        self.btn_exportar_excel = QPushButton("Exportar Excel")
         self.btn_volver = QPushButton("Volver")
         btn_layout.addWidget(self.btn_consultar)
-        btn_layout.addWidget(self.btn_exportar_pdf)
-        btn_layout.addWidget(self.btn_exportar_excel)
         btn_layout.addStretch()
         btn_layout.addWidget(self.btn_volver)
         layout.addLayout(btn_layout)
 
-        # Tabla de resultados
+        # Conexiones
+        self.btn_consultar.clicked.connect(self.consultar)
+        self.btn_volver.clicked.connect(self.volver)
+
+        # Tabla de resultados en este panel si quieres previsualizar
         self.tabla = QTableWidget()
         layout.addWidget(self.tabla, stretch=1)
-
-        self.btn_consultar.clicked.connect(self.consultar)
-        self.btn_exportar_pdf.clicked.connect(self.exportar_pdf)
-        self.btn_exportar_excel.clicked.connect(self.exportar_excel)
-        self.btn_volver.clicked.connect(self.volver)
 
         self.df_resultado = pd.DataFrame()
         self.cargar_tablas()
 
+
+    def cargar_columnas_tabla(self):
+        # Limpiar checkboxes
+        for i in reversed(range(self.columnas_layout.count())):
+            widget = self.columnas_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+
+        tabla = self.combo_tablas.currentText()
+        if not tabla:
+            return
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(f"PRAGMA table_info({tabla})")
+        columnas = [col[1] for col in cursor.fetchall()]
+        conn.close()
+
+        self.columnas_checkboxes = []
+        # Mostrar checkboxes en 3 columnas por fila
+        col_count = 3
+        for idx, col in enumerate(columnas):
+            cb = QCheckBox(col)
+            cb.setChecked(True)
+            row, col_idx = divmod(idx, col_count)
+            self.columnas_layout.addWidget(cb, row, col_idx)
+            self.columnas_checkboxes.append(cb)
+
+    # cargar_tablas, cargar_pacientes y consultar se mantienen, solo cambian referencias a checkboxes
+
+
     def cargar_tablas(self):
         conn = conectar()
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name!='sqlite_sequence';")
         tablas = [t[0] for t in cursor.fetchall()]
         conn.close()
         self.combo_tablas.addItems(tablas)
 
+    
+    def cargar_pacientes(self):
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT ci, nombre FROM Paciente")
+        for ci, nombre in cursor.fetchall():
+            self.combo_pacientes.addItem(f"{nombre} ({ci})", ci)
+        conn.close()
+
     def consultar(self):
         tabla = self.combo_tablas.currentText()
-        columnas = self.txt_columnas.text().strip()
-        if columnas == "":
-            columnas = "*"
-        query = f"SELECT {columnas} FROM {tabla}"
+        columnas = [cb.text() for cb in self.columnas_checkboxes if cb.isChecked()]
+        if not columnas:
+            QMessageBox.warning(self, "Error", "Seleccione al menos una columna")
+            return
+
+        columnas_sql = ", ".join(columnas)  # <- aquí se define
+
+        query = f"SELECT {columnas_sql} FROM {tabla} WHERE 1=1"
+
+        # filtro paciente
+        ci = self.combo_pacientes.currentData()
+        if ci:
+            query += f" AND ci='{ci}'"
+
+        # filtro fechas
+        f_inicio = self.date_inicio.date().toString("yyyy-MM-dd")
+        f_fin = self.date_fin.date().toString("yyyy-MM-dd")
+        if "fecha_egreso" in columnas:
+            query += f" AND fecha_egreso BETWEEN '{f_inicio}' AND '{f_fin}'"
+
+        # ejecutar consulta y abrir ventana de resultados
         try:
             conn = conectar()
-            self.df_resultado = pd.read_sql_query(query, conn)
+            df = pd.read_sql_query(query, conn)
             conn.close()
-            if self.df_resultado.empty:
+
+            if df.empty:
                 QMessageBox.information(self, "Info", "No se encontraron registros")
-                self.tabla.setRowCount(0)
-                self.tabla.setColumnCount(0)
                 return
-            self.mostrar_tabla()
+
+            usuario_actual = "Admin"  # cambiar según usuario conectado
+            self.resultados_window = ResultadosReportes(
+                df,
+                nombre_tabla=tabla,
+                usuario=usuario_actual,
+                volver_callback=self.volver
+            )
+            self.resultados_window.show()
+
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Ocurrió un error:\n{e}")
-
-    def mostrar_tabla(self):
-        self.tabla.setColumnCount(len(self.df_resultado.columns))
-        self.tabla.setHorizontalHeaderLabels(self.df_resultado.columns.tolist())
-        self.tabla.setRowCount(len(self.df_resultado))
-        for i, row in self.df_resultado.iterrows():
-            for j, val in enumerate(row):
-                self.tabla.setItem(i, j, QTableWidgetItem(str(val)))
-
-    def exportar_pdf(self):
-        if self.df_resultado.empty:
-            QMessageBox.warning(self, "Error", "Primero realice una consulta")
-            return
-        asegurar_directorio()
-        filename = f"{self.combo_tablas.currentText()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        ruta = os.path.join(REPORT_DIR, filename)
-        doc = SimpleDocTemplate(ruta, pagesize=letter)
-        elements = []
-        styles = getSampleStyleSheet()
-        elements.append(Paragraph(f"Reporte de {self.combo_tablas.currentText()}", styles["Title"]))
-        elements.append(Spacer(1, 12))
-        data = [self.df_resultado.columns.tolist()] + self.df_resultado.values.tolist()
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND',(0,0),(-1,0), colors.HexColor("#1976d2")),
-            ('TEXTCOLOR',(0,0),(-1,0),colors.white),
-            ('ALIGN',(0,0),(-1,-1),'CENTER'),
-            ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
-            ('GRID',(0,0),(-1,-1),0.5,colors.grey)
-        ]))
-        elements.append(table)
-        doc.build(elements)
-        QMessageBox.information(self, "Éxito", f"PDF generado:\n{ruta}")
-
-    def exportar_excel(self):
-        if self.df_resultado.empty:
-            QMessageBox.warning(self, "Error", "Primero realice una consulta")
-            return
-        asegurar_directorio()
-        filename = f"{self.combo_tablas.currentText()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        ruta = os.path.join(REPORT_DIR, filename)
-        self.df_resultado.to_excel(ruta, index=False)
-        QMessageBox.information(self, "Éxito", f"Excel generado:\n{ruta}")
+            QMessageBox.warning(self, "Error", str(e))
 
     def volver(self):
         if self.volver_callback:
