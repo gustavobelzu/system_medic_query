@@ -1,8 +1,10 @@
-import sqlite3
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget,
-    QTableWidgetItem, QLabel, QMessageBox, QLineEdit, QFormLayout, QDialog, QComboBox
+    QTableWidgetItem, QLabel, QMessageBox, QLineEdit, QFormLayout, QDialog, QComboBox,
+    QDateEdit, QTimeEdit
 )
+from PySide6.QtCore import QDate, QTime
+import sqlite3
 import os
 from datetime import datetime
 
@@ -17,33 +19,40 @@ def conectar():
 class IngresoForm(QDialog):
     def __init__(self, parent=None, ingreso=None):
         super().__init__(parent)
-        self.setWindowTitle("Registrar/Editar Ingreso")
-        self.setFixedSize(400, 300)
+        self.setWindowTitle("Registrar / Editar Ingreso")
+        self.setFixedSize(400, 320)
         self.ingreso = ingreso
 
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+        layout = QVBoxLayout(self)
 
         form_layout = QFormLayout()
 
-        # ComboBox de Pacientes
+        # ComboBox Paciente
         self.combo_paciente = QComboBox()
         conn = conectar()
         cursor = conn.cursor()
         cursor.execute("SELECT ci, nombre FROM Paciente ORDER BY nombre")
-        self.pacientes = cursor.fetchall()  # Lista de tuplas (ci, nombre)
+        self.pacientes = cursor.fetchall()
         conn.close()
+
         for ci, nombre in self.pacientes:
             self.combo_paciente.addItem(f"{nombre} ({ci})", ci)
 
-        self.txt_fecha = QLineEdit()
-        self.txt_hora = QLineEdit()
+        # Campos fecha y hora con selectores
+        self.date_edit = QDateEdit()
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setDate(QDate.currentDate())
+
+        self.time_edit = QTimeEdit()
+        self.time_edit.setTime(QTime.currentTime())
+
+        # Otros campos
         self.txt_servicio = QLineEdit()
         self.txt_cama = QLineEdit()
 
         form_layout.addRow("Paciente:", self.combo_paciente)
-        form_layout.addRow("Fecha (YYYY-MM-DD):", self.txt_fecha)
-        form_layout.addRow("Hora (HH:MM):", self.txt_hora)
+        form_layout.addRow("Fecha:", self.date_edit)
+        form_layout.addRow("Hora:", self.time_edit)
         form_layout.addRow("Servicio:", self.txt_servicio)
         form_layout.addRow("Cama:", self.txt_cama)
 
@@ -62,24 +71,38 @@ class IngresoForm(QDialog):
 
         # Si se pasa un ingreso, cargar datos
         if ingreso:
-            ci = ingreso[1]
-            index = self.combo_paciente.findData(ci)
-            if index >= 0:
-                self.combo_paciente.setCurrentIndex(index)
-            self.txt_fecha.setText(ingreso[2])
-            self.txt_hora.setText(ingreso[3])
-            self.txt_servicio.setText(ingreso[4])
-            self.txt_cama.setText(str(ingreso[5]))
+            self.cargar_datos(ingreso)
+
+    def cargar_datos(self, ingreso):
+        """
+        ingreso = (id_ingreso, ci, nombre, fecha, hora, servicio, cama)
+        """
+        ci = ingreso[1]
+        index = self.combo_paciente.findData(ci)
+        if index >= 0:
+            self.combo_paciente.setCurrentIndex(index)
+
+        # Parsear fecha y hora correctamente
+        try:
+            fecha = datetime.strptime(ingreso[3], "%Y-%m-%d").date()
+            hora = datetime.strptime(ingreso[4], "%H:%M").time()
+            self.date_edit.setDate(QDate(fecha.year, fecha.month, fecha.day))
+            self.time_edit.setTime(QTime(hora.hour, hora.minute))
+        except Exception:
+            pass  # En caso de datos corruptos
+
+        self.txt_servicio.setText(ingreso[5])
+        self.txt_cama.setText(str(ingreso[6]))
 
     def guardar(self):
         ci = self.combo_paciente.currentData()
-        fecha = self.txt_fecha.text().strip() or datetime.now().strftime("%Y-%m-%d")
-        hora = self.txt_hora.text().strip() or datetime.now().strftime("%H:%M")
+        fecha = self.date_edit.date().toString("yyyy-MM-dd")
+        hora = self.time_edit.time().toString("HH:mm")
         servicio = self.txt_servicio.text().strip()
         cama = self.txt_cama.text().strip()
 
-        if not all([ci, fecha, hora, servicio, cama]):
-            QMessageBox.warning(self, "Error", "Todos los campos son obligatorios")
+        if not all([ci, servicio, cama]):
+            QMessageBox.warning(self, "Error", "Complete todos los campos obligatorios.")
             return
 
         conn = conectar()
