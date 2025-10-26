@@ -2,7 +2,7 @@ import sqlite3
 from PySide6.QtWidgets import QMainWindow, QMessageBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
-from .dashboard_window import DashboardWindow
+from desktop_gui.dashboard_window import DashboardWindow
 
 DB_PATH = "../database/emergencias.db"
 

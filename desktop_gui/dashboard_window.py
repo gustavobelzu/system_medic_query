@@ -7,12 +7,15 @@ import os
 # Agregar tus módulos al path
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "modules"))
 
-from estados import menu_estados
-from pacientes import menu_pacientes
-from usuarios import menu_usuarios
-from ingresos import menu_ingresos
-from egresos import menu_egresos
-from reportes import menu_reportes
+from src.modules.estados import menu_estados
+from src.modules.pacientes import menu_pacientes
+from src.modules.usuarios import menu_usuarios
+from src.modules.ingresos import menu_ingresos
+from src.modules.egresos import menu_egresos
+from src.modules.reportes import menu_reportes
+
+
+
 
 class DashboardWindow(QMainWindow):
     def __init__(self, user):
