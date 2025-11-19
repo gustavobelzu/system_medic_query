@@ -2,8 +2,15 @@ import os
 import sqlite3
 import random
 from faker import Faker
+from datetime import datetime
+
+# dentro de la lista de egresos
+#fecha_ingreso = datetime.strptime(ingresos[i][1], "%Y-%m-%d").date()
+#fecha_egreso = faker.date_between(start_date=fecha_ingreso, end_date='today').isoformat()
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "emergencias.db")
+fake = Faker()
 
 # ==========================
 # INICIALIZACIÓN BD
@@ -101,7 +108,7 @@ def hay_usuarios():
     return count > 0
 
 # ==========================
-# DATOS FALSOS
+# DATOS FALSOS 1000 REGISTROS
 # ==========================
 def poblar_datos_falsos():
     conn = sqlite3.connect(DB_PATH)
@@ -128,59 +135,87 @@ def poblar_datos_falsos():
         ("Alta médica", None)
     ]
     cursor.executemany("INSERT INTO Estado (estado, condicion_especial) VALUES (?, ?)", estados)
+    
+    # Obtener IDs de estados
+    cursor.execute("SELECT id_estado FROM Estado")
+    estados_ids = [row[0] for row in cursor.fetchall()]
+
+    # --- Usuarios ---
+    usuarios = [(f"user{i}", f"pass{i}") for i in range(1, 1001)]
+    cursor.executemany("INSERT INTO Usuario (username, password) VALUES (?, ?)", usuarios)
+    cursor.execute("SELECT id_usuario FROM Usuario")
+    usuarios_ids = [row[0] for row in cursor.fetchall()]
+
+    # --- Personal ---
+    cargos = ["Médico", "Enfermera", "Admin"]
+    especialidades = [None, "Cardiología", "Pediatría", "Trauma", "Cirugía"]
+    personal = [
+        (usuarios_ids[i % 1000], fake.name(), random.choice(cargos), random.choice(especialidades))
+        for i in range(1000)
+    ]
+    cursor.executemany("""
+        INSERT INTO Personal (id_usuario, nombre, cargo, especialidad)
+        VALUES (?, ?, ?, ?)
+    """, personal)
+    cursor.execute("SELECT id_personal FROM Personal")
+    personal_ids = [row[0] for row in cursor.fetchall()]
 
     # --- Pacientes ---
     pacientes = [
-        (f"{1000+i}", f"Paciente_{i}", random.randint(1, 90),
-         random.choice(["M", "F"]), f"Depto_{i}", 70000000+i, (i % 10)+1)
-        for i in range(1, 11)
+        (str(1000+i), fake.name(), random.randint(1, 90),
+         random.choice(["M", "F"]), fake.state(), random.randint(60000000, 79999999),
+         random.choice(estados_ids))
+        for i in range(1000)
     ]
     cursor.executemany("""
         INSERT INTO Paciente (ci, nombre, edad, sexo, departamento, telefono, id_estado)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, pacientes)
 
-    # --- Usuarios ---
-    usuarios = [(f"user{i}", f"pass{i}") for i in range(1, 11)]
-    cursor.executemany("INSERT INTO Usuario (username, password) VALUES (?, ?)", usuarios)
-
-    # --- Personal ---
-    personal = [
-        (i, f"Personal_{i}", random.choice(["Médico", "Enfermera", "Admin"]),
-         random.choice([None, "Cardiología", "Pediatría", "Trauma", "Cirugía"]))
-        for i in range(1, 11)
-    ]
-    cursor.executemany("""
-        INSERT INTO Personal (id_usuario, nombre, cargo, especialidad)
-        VALUES (?, ?, ?, ?)
-    """, personal)
-
     # --- Ingresos ---
     ingresos = [
-        (pacientes[i][0], f"2025-09-{10+i}", f"{8+i}:00",
-         f"Servicio_{i}", f"Cama_{i}")
-        for i in range(10)
+        (
+            pacientes[i][0],
+            fake.date_between(start_date='-1y', end_date='today').isoformat(),
+            f"{random.randint(0,23)}:{random.randint(0,59):02d}",
+            f"Servicio_{random.randint(1,20)}",
+            f"Cama_{random.randint(1,200)}"
+        )
+        for i in range(1000)
     ]
+
     cursor.executemany("""
         INSERT INTO Ingreso (ci, fecha_ingreso, hora_ingreso, servicio_hospitalario, cama)
         VALUES (?, ?, ?, ?, ?)
     """, ingresos)
 
     # --- Egresos ---
-    egresos = [
-        (i+1, pacientes[i][0], f"2025-09-{15+i}", f"{12+i}:30",
-         random.randint(1, 15), random.choice(["Recuperado", "Derivado", "Fallecido"]))
-        for i in range(10)
-    ]
+    egresos = []
+    for i in range(len(ingresos)):
+        # Convertir la fecha de ingreso (string) a objeto date
+        fecha_ingreso_date = datetime.strptime(ingresos[i][1], "%Y-%m-%d").date()
+        
+        # Generar fecha de egreso entre fecha_ingreso y hoy
+        fecha_egreso = fake.date_between(start_date=fecha_ingreso_date, end_date='today').isoformat()
+        
+        egresos.append((
+            i+1,                     # id_ingreso
+            pacientes[i][0],         # ci
+            fecha_egreso,            # fecha_egreso
+            f"{random.randint(0,23)}:{random.randint(0,59):02d}",  # hora_egreso
+            random.randint(1,30),    # estancia
+            random.choice(["Recuperado", "Derivado", "Fallecido"])
+        ))
+
     cursor.executemany("""
         INSERT INTO Egreso (id_ingreso, ci, fecha_egreso, hora_egreso, estancia, estado_egreso)
         VALUES (?, ?, ?, ?, ?, ?)
     """, egresos)
-
     # --- Ingreso_Personal ---
+    roles = ["Médico tratante", "Enfermera de guardia", "Asistente"]
     ingreso_personal = [
-        (i+1, (i % 10)+1, random.choice(["Médico tratante", "Enfermera de guardia", "Asistente"]))
-        for i in range(10)
+        ((i+1), random.choice(personal_ids), random.choice(roles))
+        for i in range(1000)
     ]
     cursor.executemany("""
         INSERT INTO Ingreso_Personal (id_ingreso, id_personal, rol)
@@ -189,4 +224,4 @@ def poblar_datos_falsos():
 
     conn.commit()
     conn.close()
-    print("✅ Datos falsos insertados correctamente")
+    print("✅ 1000 registros insertados correctamente")
